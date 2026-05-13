@@ -14,11 +14,16 @@ export const getAuthInfo = () => {
   const user = parseStoredUser();
   const token = getStoredToken();
   const isAuthenticated = Boolean(token && user?.role);
-  const dashboardPath = user?.role === "superAdmin"
-    ? "/super-admin/dashboard"
-    : user?.role === "admin"
-      ? "/admin/dashboard"
-      : "/user/dashboard";
+  const dashboardPath =
+    user?.role === "superAdmin"
+      ? "/super-admin/dashboard"
+      : user?.role === "admin"
+        ? user?.hospitalId
+          ? "/hospital/dashboard"
+          : "/admin/dashboard"
+        : user?.role === "hospital"
+          ? "/hospital/dashboard"
+          : "/user/dashboard";
 
   return { user, token, isAuthenticated, dashboardPath };
 };

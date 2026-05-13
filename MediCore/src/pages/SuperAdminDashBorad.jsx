@@ -54,13 +54,16 @@ const SuperAdminDashBorad = () => {
       setLoading(false);
     }
   };
+  useEffect(() => {
+    fetchHospitals();
+  }, [statusFilter]);
 
   const handleApproveHospital = async (hospitalId) => {
     try {
       await axiosInstance.patch(`/super-admin/approveHospital/${hospitalId}`);
       setMessage("Hospital approved successfully.");
       fetchHospitals();
-        if (selectedHospital?._id === hospitalId) {
+      if (selectedHospital?._id === hospitalId) {
         setSelectedHospital((prev) => ({ ...prev, status: "approved" }));
       }
     } catch (error) {
@@ -83,7 +86,9 @@ const SuperAdminDashBorad = () => {
 
   const handleSoftDeleteHospital = async (hospitalId) => {
     try {
-      await axiosInstance.patch(`/super-admin/hospitals/${hospitalId}/soft-delete`);
+      await axiosInstance.patch(
+        `/super-admin/hospitals/${hospitalId}/soft-delete`,
+      );
       setMessage("Hospital soft deleted successfully.");
       fetchHospitals();
       if (selectedHospital?._id === hospitalId) {
@@ -109,7 +114,9 @@ const SuperAdminDashBorad = () => {
 
   const handleToggleActiveHospital = async (hospitalId) => {
     try {
-      await axiosInstance.patch(`/super-admin/hospitals/${hospitalId}/toggle-active`);
+      await axiosInstance.patch(
+        `/super-admin/hospitals/${hospitalId}/toggle-active`,
+      );
       setMessage("Hospital status updated successfully.");
       fetchHospitals();
     } catch (error) {
@@ -176,16 +183,36 @@ const SuperAdminDashBorad = () => {
             className="flex w-full items-center justify-center gap-2 rounded-md border border-slate-700 px-3 py-3 text-sm font-semibold text-slate-200 transition hover:border-slate-600 hover:bg-slate-800"
             aria-label="Toggle theme"
           >
-            {theme === 'light' ? (
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            {theme === "light" ? (
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                />
               </svg>
             ) : (
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                />
               </svg>
             )}
-            <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+            <span>{theme === "light" ? "Dark Mode" : "Light Mode"}</span>
           </button>
         </div>
 
@@ -207,14 +234,16 @@ const SuperAdminDashBorad = () => {
                   Super Admin
                 </p>
                 <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950">
-                  {activeMenu === "hospital" ? "Hospital Management" : "Location Management"}
+                  {activeMenu === "hospital"
+                    ? "Hospital Management"
+                    : "Location Management"}
                 </h1>
                 <p className="mt-1 text-sm text-slate-500">
                   {user.name
                     ? `Signed in as ${user.name}`
                     : activeMenu === "hospital"
-                    ? "Manage hospital approvals and review registration details."
-                    : "Create and review state, district, and city records."}
+                      ? "Manage hospital approvals and review registration details."
+                      : "Create and review state, district, and city records."}
                 </p>
               </div>
 
@@ -223,7 +252,9 @@ const SuperAdminDashBorad = () => {
                   Current Action
                 </p>
                 <p className="mt-1 text-sm font-bold text-slate-900">
-                  {activeMenu === "hospital" ? "Hospital Management" : "Add Location"}
+                  {activeMenu === "hospital"
+                    ? "Hospital Management"
+                    : "Add Location"}
                 </p>
               </div>
             </div>
@@ -270,7 +301,8 @@ const SuperAdminDashBorad = () => {
                       Hospital Requests
                     </h2>
                     <p className="mt-2 text-sm text-slate-500">
-                      Review hospitals, manage active/inactive records, and restore soft-deleted entries.
+                      Review hospitals, manage active/inactive records, and
+                      restore soft-deleted entries.
                     </p>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-4">
@@ -313,8 +345,14 @@ const SuperAdminDashBorad = () => {
                   </div>
 
                   {selectedHospital && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 dark:bg-black/70" onClick={() => setSelectedHospital(null)}>
-                      <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800" onClick={(e) => e.stopPropagation()}>
+                    <div
+                      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 dark:bg-black/70"
+                      onClick={() => setSelectedHospital(null)}
+                    >
+                      <div
+                        className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <HospitalDetails
                           hospital={selectedHospital}
                           onClose={() => setSelectedHospital(null)}
@@ -333,19 +371,31 @@ const SuperAdminDashBorad = () => {
                       <div className="rounded-3xl bg-slate-50 px-4 py-5">
                         <p className="text-sm text-slate-500">Pending</p>
                         <p className="mt-2 text-3xl font-bold text-slate-900">
-                          {hospitals.filter((item) => item.status === "pending").length}
+                          {
+                            hospitals.filter(
+                              (item) => item.status === "pending",
+                            ).length
+                          }
                         </p>
                       </div>
                       <div className="rounded-3xl bg-slate-50 px-4 py-5">
                         <p className="text-sm text-slate-500">Approved</p>
                         <p className="mt-2 text-3xl font-bold text-slate-900">
-                          {hospitals.filter((item) => item.status === "approved").length}
+                          {
+                            hospitals.filter(
+                              (item) => item.status === "approved",
+                            ).length
+                          }
                         </p>
                       </div>
                       <div className="rounded-3xl bg-slate-50 px-4 py-5">
                         <p className="text-sm text-slate-500">Rejected</p>
                         <p className="mt-2 text-3xl font-bold text-slate-900">
-                          {hospitals.filter((item) => item.status === "rejected").length}
+                          {
+                            hospitals.filter(
+                              (item) => item.status === "rejected",
+                            ).length
+                          }
                         </p>
                       </div>
                       <div className="rounded-3xl bg-slate-50 px-4 py-5">

@@ -9,6 +9,7 @@ import AddHospital from "./components/AddHospital";
 import SuperAdminDashBorad from "./pages/SuperAdminDashBorad";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserDashboard from "./pages/UserDashboard";
+import HospitalDashborad from "./pages/HospitalDashborad";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
 
@@ -87,6 +88,15 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/hospital/dashboard"
+          element={
+            <ProtectedRoute roles={["hospital", "admin"]}>
+              <HospitalDashborad />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/user/dashboard"
           element={
