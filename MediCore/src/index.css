@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   font-family:
     Inter,
@@ -48,54 +50,6 @@ html.dark body {
   color: #e2e8f0;
 }
 
-/* ensure dark backgrounds actually apply */
-html.dark .bg-white,
-html.dark .bg-slate-50,
-html.dark .bg-slate-100,
-html.dark .bg-slate-200 {
-  background-color: #0f172a !important;
-}
-
-html.dark .bg-slate-50,
-html.dark .bg-slate-100 {
-  background-color: #111827 !important;
-}
-
-html.dark .bg-slate-200 {
-  background-color: #1f2937 !important;
-}
-
-html.dark .bg-blue-50,
-html.dark .bg-emerald-50,
-html.dark .bg-rose-50,
-html.dark .bg-amber-50 {
-  background-color: rgba(148, 163, 184, 0.12) !important;
-}
-
-html.dark .border-slate-200,
-html.dark .border-slate-100 {
-  border-color: #334155 !important;
-}
-
-html.dark .border-slate-300 {
-  border-color: #475569 !important;
-}
-
-html.dark .text-slate-950,
-html.dark .text-slate-900 {
-  color: #f8fafc !important;
-}
-
-html.dark .text-slate-700,
-html.dark .text-slate-600,
-html.dark .text-slate-500 {
-  color: #94a3b8 !important;
-}
-
-html.dark .text-slate-400 {
-  color: #cbd5e1 !important;
-}
-
 button,
 input,
 select {
@@ -112,4 +66,18 @@ button:disabled {
 
 #root {
   min-height: 100svh;
+}
+
+.auth-page {
+  background:
+    radial-gradient(circle at top left, rgba(20, 184, 166, 0.18), transparent 34rem),
+    radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.14), transparent 30rem),
+    linear-gradient(135deg, #f8fafc 0%, #eefdf8 48%, #f8fafc 100%);
+}
+
+html.dark .auth-page {
+  background:
+    radial-gradient(circle at top left, rgba(45, 212, 191, 0.16), transparent 34rem),
+    radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.12), transparent 30rem),
+    linear-gradient(135deg, #020617 0%, #0f172a 48%, #031b1d 100%);
 }

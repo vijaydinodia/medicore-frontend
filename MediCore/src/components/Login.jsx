@@ -1,166 +1,118 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../api";
+import AuthShell from "./AuthShell";
+
+const dashboardByRole = (user) => {
+  if (user?.role === "superAdmin") return "/super-admin/dashboard";
+  if (user?.role === "hospital") return "/hospital/dashboard";
+  if (user?.role === "doctor") return "/doctor/dashboard";
+  if (user?.role === "admin") return user?.hospitalId ? "/hospital/dashboard" : "/admin/dashboard";
+  return "/user/dashboard";
+};
 
 const Login = () => {
   const navigate = useNavigate();
-
-  const initialData = {
-    email: "",
-    password: "",
-  };
-
+  const location = useLocation();
+  const initialData = { email: "", password: "" };
   const [form, setForm] = useState(initialData);
-
   const [loading, setLoading] = useState(false);
-
   const [error, setError] = useState("");
 
-  // handle input
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    // clear error
+    setForm((prev) => ({ ...prev, [name]: value }));
     setError("");
   };
 
-  // handle submit
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // validation
-    if (!form.email || !form.password) {
-      return setError("All fields are required");
+    if (!form.email.trim() || !form.password) {
+      return setError("Email and password are required.");
     }
 
     try {
       setLoading(true);
+      const res = await axiosInstance.post("/user/login", {
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+      });
+      const user = res.data.user;
 
-      // login api
-      const res = await axiosInstance.post("/user/login", form);
-
-      console.log(res.data);
-
-      // save token
       localStorage.setItem("token", res.data.token);
-
-      // save user
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-
-      // sync auth state in the current tab
+      localStorage.setItem("user", JSON.stringify(user));
       window.dispatchEvent(new Event("authChanged"));
-
-      const role = res.data.user.role;
-
-      if (role === "superAdmin") {
-        navigate("/super-admin/dashboard");
-      } else if (role === "admin") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/user/dashboard");
-      }
-
-      // success message
-      alert(res.data.message);
-
-      // clear form
       setForm(initialData);
-
+      navigate(location.state?.from || dashboardByRole(user), { replace: true });
     } catch (err) {
-      console.log(err);
-
-      setError(err.response?.data?.message || "Login failed");
+      setError(err.response?.data?.message || "Login failed. Please check your credentials.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-[calc(100svh-73px)] items-center justify-center bg-slate-100 px-4 py-10 dark:bg-slate-900">
-      <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-8 text-left shadow-sm dark:border-slate-700 dark:bg-slate-800">
-        <div className="mb-6 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-950 dark:text-white">Login</h1>
+    <AuthShell
+      eyebrow="Secure sign in"
+      title="Welcome back"
+      subtitle="Use your MediCore account to continue securely."
+      footer={
+        <>
+          New to MediCore?{" "}
+          <Link to="/signup" className="font-semibold text-teal-700 hover:text-teal-800 dark:text-teal-300">
+            Create an account
+          </Link>
+        </>
+      }
+    >
+      {error && (
+        <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-900/70 dark:bg-rose-950/40 dark:text-rose-200">
+          {error}
+        </div>
+      )}
 
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Welcome back to MediCore</p>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">Email address</label>
+          <input
+            type="email"
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+            autoComplete="email"
+            className="h-12 w-full rounded-md border border-slate-300 bg-white px-4 text-sm text-slate-950 outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-teal-400 dark:focus:ring-teal-950"
+            placeholder="name@hospital.com"
+          />
         </div>
 
-        {error && (
-          <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/50 dark:text-red-300">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-              Email
-            </label>
-
-            <input
-              type="email"
-              name="email"
-              placeholder="Enter your email"
-              value={form.email}
-              onChange={handleChange}
-              className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-900/50"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-              Password
-            </label>
-
-            <input
-              type="password"
-              name="password"
-              placeholder="Enter your password"
-              value={form.password}
-              onChange={handleChange}
-              className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-900/50"
-            />
-          </div>
-
-          <div className="text-right">
-            <Link
-              to="/forget"
-              className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-            >
-              Forgot Password?
+        <div>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Password</label>
+            <Link to="/forget" className="text-sm font-semibold text-teal-700 hover:text-teal-800 dark:text-teal-300">
+              Forgot password?
             </Link>
           </div>
+          <input
+            type="password"
+            name="password"
+            value={form.password}
+            onChange={handleChange}
+            autoComplete="current-password"
+            className="h-12 w-full rounded-md border border-slate-300 bg-white px-4 text-sm text-slate-950 outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-teal-400 dark:focus:ring-teal-950"
+            placeholder="Enter your password"
+          />
+        </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className={`h-11 w-full rounded-md text-sm font-semibold text-white shadow-sm transition
-              ${
-                loading
-                  ? "bg-blue-400 cursor-not-allowed dark:bg-blue-800"
-                  : "bg-blue-600 hover:bg-blue-700"
-              }
-            `}
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
-          Don&apos;t have an account?{" "}
-          <Link
-            to="/signup"
-            className="font-semibold text-blue-600 hover:text-blue-700"
-          >
-            Signup
-          </Link>
-        </p>
-      </div>
-    </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="h-12 w-full rounded-md bg-teal-700 px-4 text-sm font-bold text-white shadow-lg shadow-teal-900/15 transition hover:bg-teal-800 disabled:bg-teal-400 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400 dark:disabled:bg-teal-900"
+        >
+          {loading ? "Signing in..." : "Sign in"}
+        </button>
+      </form>
+    </AuthShell>
   );
 };
 

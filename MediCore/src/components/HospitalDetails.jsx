@@ -3,6 +3,8 @@ const HospitalDetails = ({ hospital, onClose }) => {
     return null;
   }
 
+  const documents = hospital.files || [];
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between gap-4">
@@ -145,6 +147,38 @@ const HospitalDetails = ({ hospital, onClose }) => {
             </p>
           </div>
         </div>
+      </div>
+
+      <div className="mt-6 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <p className="text-xs uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Documents</p>
+        {documents.length ? (
+          <div className="mt-4 grid gap-3">
+            {documents.map((document, index) => (
+              <div key={document.publicId || document.url || index} className="flex flex-col gap-3 rounded-3xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                    {document.documentName || document.name || `Document ${index + 1}`}
+                  </p>
+                  {document.name && document.documentName !== document.name && (
+                    <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">{document.name}</p>
+                  )}
+                </div>
+                <a
+                  href={document.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border border-blue-600 bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100 dark:border-blue-400 dark:bg-blue-500 dark:text-slate-950 dark:hover:bg-blue-400 dark:focus:ring-blue-950"
+                >
+                  View file
+                </a>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-4 rounded-3xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
+            No documents uploaded.
+          </p>
+        )}
       </div>
     </div>
   );

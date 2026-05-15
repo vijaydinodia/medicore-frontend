@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../api";
+import AuthShell from "./AuthShell";
 
 const VerifyOtp = () => {
   const navigate = useNavigate();
@@ -15,44 +16,55 @@ const VerifyOtp = () => {
     setError("");
 
     if (!(email.trim() && otp.trim())) {
-      return setError("Email and OTP are required");
+      return setError("Email and OTP are required.");
     }
 
     try {
       setLoading(true);
-      const res = await axiosInstance.post("/user/verifyOtp", { email, otp });
-      alert(res.data.message || "OTP verified");
-      navigate("/resetpassword", { state: { email } });
+      await axiosInstance.post("/user/verifyOtp", {
+        email: email.trim().toLowerCase(),
+        otp: otp.trim(),
+      });
+      navigate("/resetpassword", { state: { email: email.trim().toLowerCase() } });
     } catch (err) {
-      setError(err.response?.data?.message || "OTP verification failed");
+      setError(err.response?.data?.message || "OTP verification failed.");
     } finally {
       setLoading(false);
     }
   };
 
+  const inputClass = "h-12 w-full rounded-md border border-slate-300 bg-white px-4 text-sm text-slate-950 outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-teal-400 dark:focus:ring-teal-950";
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-8 text-left shadow-lg">
-        <div className="mb-6 text-center">
-          <h1 className="m-0 text-3xl font-bold text-blue-600">Verify OTP</h1>
-          <p className="mt-2 text-gray-500">Check your email for the reset code</p>
+    <AuthShell
+      eyebrow="Verify identity"
+      title="Enter OTP"
+      subtitle="Use the verification code sent to your registered email."
+      footer={
+        <>
+          Need another code?{" "}
+          <Link to="/forget" className="font-semibold text-teal-700 hover:text-teal-800 dark:text-teal-300">
+            Request again
+          </Link>
+        </>
+      }
+    >
+      {error && <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-900/70 dark:bg-rose-950/40 dark:text-rose-200">{error}</div>}
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">Email address</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} autoComplete="email" />
         </div>
-        {error && <div className="mb-4 rounded-md bg-red-100 px-4 py-3 text-sm text-red-600">{error}</div>}
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="mb-2 block font-medium text-gray-700">Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-md border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div>
-            <label className="mb-2 block font-medium text-gray-700">OTP</label>
-            <input value={otp} onChange={(e) => setOtp(e.target.value)} className="w-full rounded-md border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter OTP" />
-          </div>
-          <button type="submit" disabled={loading} className="w-full rounded-md bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700 disabled:bg-blue-300">
-            {loading ? "Verifying..." : "Verify OTP"}
-          </button>
-        </form>
-      </div>
-    </div>
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">OTP code</label>
+          <input value={otp} onChange={(e) => setOtp(e.target.value)} className={inputClass} placeholder="Enter OTP" inputMode="numeric" />
+        </div>
+        <button type="submit" disabled={loading} className="h-12 w-full rounded-md bg-teal-700 px-4 text-sm font-bold text-white shadow-lg shadow-teal-900/15 transition hover:bg-teal-800 disabled:bg-teal-400 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400 dark:disabled:bg-teal-900">
+          {loading ? "Verifying..." : "Verify OTP"}
+        </button>
+      </form>
+    </AuthShell>
   );
 };
 
