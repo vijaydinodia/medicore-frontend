@@ -10,6 +10,12 @@ const createDocumentRow = () => ({
   file: null,
 });
 
+const getApiErrorMessage = (error) => {
+  const data = error.response?.data;
+  if (typeof data === "string") return data;
+  return data?.error || data?.message || error.message || "Could not submit hospital.";
+};
+
 const AddHospital = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -175,11 +181,6 @@ const AddHospital = () => {
     const completedDocuments = hospitalDocuments.filter((document) => document.name.trim() || document.file);
     const hasIncompleteDocument = completedDocuments.some((document) => !document.name.trim() || !document.file);
 
-    if (!completedDocuments.length) {
-      setMessage("Please upload at least one required document.");
-      return;
-    }
-
     if (hasIncompleteDocument) {
       setMessage("Each document row needs both a document name and a file.");
       return;
@@ -206,9 +207,8 @@ const AddHospital = () => {
       payload.append("documentNames", JSON.stringify(completedDocuments.map((document) => document.name.trim())));
       completedDocuments.forEach((document) => payload.append("hospitalFiles", document.file));
 
-      await axiosInstance.post("/hospital/addHospital", payload, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await axiosInstance.post("/hospital/addHospital", payload);
+
       setMessage("Hospital added successfully.");
       setForm({
         hospitalName: "",
@@ -240,7 +240,7 @@ const AddHospital = () => {
       setHospitalImages([]);
       setHospitalDocuments([createDocumentRow()]);
     } catch (error) {
-      setMessage(error.response?.data?.message || "Could not submit hospital.");
+      setMessage(getApiErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -545,7 +545,7 @@ const AddHospital = () => {
                   {hospitalImages.length > 0 && <span className="mt-2 block text-xs text-slate-500 dark:text-slate-400">{hospitalImages.length} image(s) selected</span>}
                 </label>
                 <div className="lg:col-span-3">
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Required documents</p>
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Documents</p>
                   <div className="mt-2 space-y-3">
                     {hospitalDocuments.map((document, index) => (
                       <div key={document.id} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-950 sm:grid-cols-[1fr_1.5fr_auto_auto] sm:items-center">
@@ -612,6 +612,11 @@ const AddHospital = () => {
                 Cancel
               </button>
             </div>
+            {message && (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                {message}
+              </div>
+            )}
           </form>
         </div>
       </div>

@@ -5,6 +5,9 @@ import SearchInput from "../components/SearchInput";
 import { getAuthInfo } from "../custom_hook/useAuth";
 
 const getRecordId = (value) => value?._id || value || "";
+const getDoctorImage = (doctor) => doctor.profileImage || doctor.doctorImage?.profileImage || "";
+const getDoctorPhotos = (doctor) =>
+  (doctor.files || []).filter((file) => file?.category === "image" && file?.url);
 
 const Doctors = () => {
   const navigate = useNavigate();
@@ -95,10 +98,15 @@ const Doctors = () => {
           <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {visibleDoctors.map((doctor) => (
               <article key={doctor._id} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                {(() => {
+                  const doctorPhotos = getDoctorPhotos(doctor);
+
+                  return (
+                    <>
                 <div className="flex items-start gap-4">
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-teal-700 text-lg font-black text-white dark:bg-teal-500 dark:text-slate-950">
-                    {doctor.profileImage ? (
-                      <img src={doctor.profileImage} alt="" className="h-full w-full object-cover" />
+                    {getDoctorImage(doctor) ? (
+                      <img src={getDoctorImage(doctor)} alt="" className="h-full w-full object-cover" />
                     ) : (
                       (doctor.doctorName || "D").slice(0, 2).toUpperCase()
                     )}
@@ -115,6 +123,16 @@ const Doctors = () => {
                     </div>
                   </div>
                 </div>
+
+                {doctorPhotos.length > 0 && (
+                  <div className="mt-4 grid grid-cols-3 gap-2">
+                    {doctorPhotos.slice(0, 3).map((photo, index) => (
+                      <a key={photo._id || photo.url} href={photo.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-md border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950">
+                        <img src={photo.url} alt={`${doctor.doctorName || "Doctor"} photo ${index + 1}`} className="h-20 w-full object-cover" />
+                      </a>
+                    ))}
+                  </div>
+                )}
 
                 <div className="mt-5 space-y-3 text-sm text-slate-600 dark:text-slate-300">
                   <p><span className="font-bold text-slate-900 dark:text-white">Department:</span> {doctor.departmentId?.departmentName || "Not assigned"}</p>
@@ -140,6 +158,9 @@ const Doctors = () => {
                     {(doctor.availableDays || []).join(", ") || "No days set"} {doctor.availableTime?.startTime || doctor.availableTime?.endTime ? ` · ${doctor.availableTime?.startTime || ""} - ${doctor.availableTime?.endTime || ""}` : ""}
                   </p>
                 </div>
+                    </>
+                  );
+                })()}
               </article>
             ))}
 

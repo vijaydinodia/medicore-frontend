@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import axiosInstance from "../api";
 import AuthShell from "./AuthShell";
 
-
 const SignUp = () => {
   const navigate = useNavigate();
   const initialData = {

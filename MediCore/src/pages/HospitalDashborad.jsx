@@ -83,6 +83,7 @@ const Modal = ({ title, subtitle, onClose, children }) => (
 );
 
 const getRecordId = (value) => value?._id || value || "";
+const getDoctorImage = (doctor) => doctor.profileImage || doctor.doctorImage?.profileImage || "";
 
 const HospitalDashborad = () => {
   const { user: currentUser } = useAuth();
@@ -303,9 +304,18 @@ const HospitalDashborad = () => {
             <div className="mt-5 space-y-3">
               {visibleDoctors.slice(0, 5).map((doctor) => (
                 <div key={doctor._id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
-                  <div>
-                    <p className="font-bold text-slate-950 dark:text-white">{doctor.doctorName}</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">{doctor.specialization}</p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md bg-teal-700 text-sm font-black text-white dark:bg-teal-500 dark:text-slate-950">
+                      {getDoctorImage(doctor) ? (
+                        <img src={getDoctorImage(doctor)} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        (doctor.doctorName || "D").slice(0, 2).toUpperCase()
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-slate-950 dark:text-white">{doctor.doctorName}</p>
+                      <p className="truncate text-sm text-slate-500 dark:text-slate-400">{doctor.specialization}</p>
+                    </div>
                   </div>
                   <Pill tone={doctor.status === "active" ? "success" : "warning"}>{doctor.status}</Pill>
                 </div>

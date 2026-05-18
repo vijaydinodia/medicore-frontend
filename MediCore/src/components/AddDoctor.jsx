@@ -6,6 +6,12 @@ const inputClass =
 
 const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+const getApiErrorMessage = (error) => {
+  const data = error.response?.data;
+  if (typeof data === "string") return data;
+  return data?.message || data?.error || error.message || "Unable to create doctor.";
+};
+
 const AddDoctor = ({ hospitalId, departments = [], subDepartments = [], onCreated }) => {
   const [form, setForm] = useState({
     departmentId: "",
@@ -29,6 +35,7 @@ const AddDoctor = ({ hospitalId, departments = [], subDepartments = [], onCreate
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [profileImageFile, setProfileImageFile] = useState(null);
+  const [doctorImages, setDoctorImages] = useState([]);
   const [doctorFiles, setDoctorFiles] = useState([]);
 
   const filteredSubDepartments = subDepartments.filter((item) => {
@@ -85,11 +92,10 @@ const AddDoctor = ({ hospitalId, departments = [], subDepartments = [], onCreate
       payload.append("emergencyAvailable", form.emergencyAvailable);
       payload.append("status", "active");
       if (profileImageFile) payload.append("profileImage", profileImageFile);
+      doctorImages.forEach((file) => payload.append("doctorImages", file));
       doctorFiles.forEach((file) => payload.append("doctorFiles", file));
 
-      const response = await axiosInstance.post("/doctor/createDoctor", payload, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const response = await axiosInstance.post("/doctor/createDoctor", payload);
       setMessage(response.data.message || "Doctor created successfully.");
       setForm({
         departmentId: "",
@@ -110,10 +116,11 @@ const AddDoctor = ({ hospitalId, departments = [], subDepartments = [], onCreate
         emergencyAvailable: false,
       });
       setProfileImageFile(null);
+      setDoctorImages([]);
       setDoctorFiles([]);
       onCreated?.(response.data.data);
     } catch (err) {
-      setError(err.response?.data?.message || "Unable to create doctor.");
+      setError(getApiErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -200,6 +207,11 @@ const AddDoctor = ({ hospitalId, departments = [], subDepartments = [], onCreate
           <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">Profile photo</label>
           <input type="file" accept="image/*" onChange={(event) => setProfileImageFile(event.target.files?.[0] || null)} className={inputClass} />
           {profileImageFile && <p className="mt-2 truncate text-xs text-slate-500 dark:text-slate-400">{profileImageFile.name}</p>}
+        </div>
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">Doctor photos</label>
+          <input type="file" accept="image/*" multiple onChange={(event) => setDoctorImages(Array.from(event.target.files || []))} className={inputClass} />
+          {doctorImages.length > 0 && <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{doctorImages.length} photo(s) selected</p>}
         </div>
         <div>
           <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">Other files</label>

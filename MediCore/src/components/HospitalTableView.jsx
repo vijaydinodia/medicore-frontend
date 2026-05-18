@@ -59,6 +59,8 @@ const StatusBadge = ({ children, tone }) => {
   return <span className={`rounded-full px-2.5 py-1 text-xs font-bold capitalize ${tones[tone] || tones.inactive}`}>{children}</span>;
 };
 
+const getHospitalImage = (hospital) => hospital.logo || hospital.images?.find((image) => image?.url)?.url || "";
+
 const HospitalTableView = ({ hospitals, onApprove, onReject, onToggleActive, onDelete, onRestore, onViewDetails }) => {
   const {
     viewMode,
@@ -212,9 +214,18 @@ const HospitalTableView = ({ hospitals, onApprove, onReject, onToggleActive, onD
                 {isEditing && editingItem?._id === hospital._id ? (
                   <input type="text" value={editingItem.hospitalName} onChange={(e) => updateEditingItem("hospitalName", e.target.value)} className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
                 ) : (
-                  <div>
-                    <p className="font-bold text-slate-950 dark:text-white">{hospital.hospitalName}</p>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{hospital.email}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md bg-teal-700 text-sm font-black text-white dark:bg-teal-500 dark:text-slate-950">
+                      {getHospitalImage(hospital) ? (
+                        <img src={getHospitalImage(hospital)} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        (hospital.hospitalName || "H").slice(0, 2).toUpperCase()
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-slate-950 dark:text-white">{hospital.hospitalName}</p>
+                      <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">{hospital.email}</p>
+                    </div>
                   </div>
                 )}
               </td>
@@ -245,7 +256,16 @@ const HospitalTableView = ({ hospitals, onApprove, onReject, onToggleActive, onD
             {isEditing && editingItem?._id === hospital._id ? (
               <input type="text" value={editingItem.hospitalName} onChange={(e) => updateEditingItem("hospitalName", e.target.value)} className="h-11 w-full rounded-md border border-slate-300 px-3 text-base font-bold dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
             ) : (
-              <h3 className="text-lg font-bold text-slate-950 dark:text-white">{hospital.hospitalName}</h3>
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md bg-teal-700 text-sm font-black text-white dark:bg-teal-500 dark:text-slate-950">
+                  {getHospitalImage(hospital) ? (
+                    <img src={getHospitalImage(hospital)} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    (hospital.hospitalName || "H").slice(0, 2).toUpperCase()
+                  )}
+                </div>
+                <h3 className="min-w-0 truncate text-lg font-bold text-slate-950 dark:text-white">{hospital.hospitalName}</h3>
+              </div>
             )}
             <p className="text-sm text-slate-600 dark:text-slate-300">{hospital.hospitalType || "Hospital"}</p>
             <p className="break-all text-sm text-slate-500 dark:text-slate-400">{hospital.email || "No email"}</p>
