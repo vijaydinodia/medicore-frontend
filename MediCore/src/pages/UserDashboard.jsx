@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../api";
 import SearchInput from "../components/SearchInput";
-import { getAuthInfo } from "../custom_hook/UseAuth";
+import { getAuthInfo } from "../custom_hook/useAuth";
 
 const AppointmentModal = lazy(() => import("../components/AppointmentModal"));
 const HospitalDetails = lazy(() => import("../components/HospitalDetails"));

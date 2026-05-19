@@ -5,7 +5,7 @@ import AddDepartment from "../components/AddDepartment";
 import AddDoctor from "../components/AddDoctor";
 import AddSubDepartment from "../components/AddSubDepartment";
 import SearchInput from "../components/SearchInput";
-import { UseAuth } from "../custom_hook/UseAuth";
+import { UseAuth } from "../custom_hook/useAuth";
 
 const paths = {
   department: "M4 5h16M4 12h16M4 19h16",

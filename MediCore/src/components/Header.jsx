@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { UseTheme } from "../custom_hook/UseTheme";
-import { getDashboardPath, UseAuth } from "../custom_hook/UseAuth";
+import { getDashboardPath, UseAuth } from "../custom_hook/useAuth";
 import ChangePassword from "./ChangePassword";
 import EditProfile from "./EditProfile";
 
