@@ -7,7 +7,7 @@ const dashboardByRole = (user) => {
   if (user?.role === "superAdmin") return "/super-admin/dashboard";
   if (user?.role === "hospital") return "/hospital/dashboard";
   if (user?.role === "doctor") return "/doctor/dashboard";
-  if (user?.role === "admin") return user?.hospitalId ? "/hospital/dashboard" : "/admin/dashboard";
+  if (user?.role === "admin") return "/hospital/dashboard";
   return "/user/dashboard";
 };
 
@@ -44,7 +44,9 @@ const Login = () => {
       localStorage.setItem("user", JSON.stringify(user));
       window.dispatchEvent(new Event("authChanged"));
       setForm(initialData);
-      navigate(location.state?.from || dashboardByRole(user), { replace: true });
+      const from = location.state?.from;
+      const redirectPath = from === "/user/dashboard" && user?.role !== "user" ? dashboardByRole(user) : from || dashboardByRole(user);
+      navigate(redirectPath, { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Please check your credentials.");
     } finally {

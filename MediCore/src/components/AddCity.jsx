@@ -14,10 +14,8 @@ const AddCity = () => {
 
   const fetchData = async () => {
     try {
-      const [districtRes, cityRes] = await Promise.all([
-        axiosInstance.get("/location/district/getAllDistrict"),
-        axiosInstance.get("/location/city/getAllCity"),
-      ]);
+      const districtRes = await axiosInstance.get("/location/district/getAllDistrict");
+      const cityRes = await axiosInstance.get("/location/city/getAllCity");
       setDistricts(districtRes.data.data || []);
       setCities(cityRes.data.data || []);
     } catch (err) {

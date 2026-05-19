@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api";
 import EditProfile from "../components/EditProfile";
@@ -90,16 +90,13 @@ const SuperAdminDashBorad = () => {
   const [message, setMessage] = useState("");
   const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem("user") || "{}"));
 
-  const stats = useMemo(
-    () => ({
-      total: hospitals.length,
-      pending: hospitals.filter((item) => item.status === "pending").length,
-      approved: hospitals.filter((item) => item.status === "approved").length,
-      rejected: hospitals.filter((item) => item.status === "rejected").length,
-      inactive: hospitals.filter((item) => item.isActive === false).length,
-    }),
-    [hospitals],
-  );
+  const stats = {
+    total: hospitals.length,
+    pending: hospitals.filter((item) => item.status === "pending").length,
+    approved: hospitals.filter((item) => item.status === "approved").length,
+    rejected: hospitals.filter((item) => item.status === "rejected").length,
+    inactive: hospitals.filter((item) => item.isActive === false).length,
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");

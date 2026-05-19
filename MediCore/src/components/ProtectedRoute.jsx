@@ -3,14 +3,17 @@ import { getAuthInfo } from "../custom_hook/useAuth";
 
 const ProtectedRoute = ({ children, roles = [] }) => {
   const location = useLocation();
-  const { isAuthenticated, user, dashboardPath } = getAuthInfo();
+  const auth = getAuthInfo();
 
-  if (!isAuthenticated) {
+  if (!auth.isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
-  if (roles.length > 0 && !roles.includes(user?.role)) {
-    return <Navigate to={dashboardPath} replace />;
+  const hasRoleCheck = roles.length > 0;
+  const userRole = auth.user?.role;
+
+  if (hasRoleCheck && !roles.includes(userRole)) {
+    return <Navigate to={auth.dashboardPath} replace />;
   }
 
   return children;

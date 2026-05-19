@@ -33,7 +33,7 @@ const Header = () => {
   }
 
   const dashboardPath = getDashboardPath(user);
-  const isHospitalRole = user?.role === "hospital" || (user?.role === "admin" && user?.hospitalId);
+  const isHospitalRole = user?.role === "hospital" || user?.role === "admin";
   const accountName = user?.name || user?.doctorName || user?.email || "Account";
   const initials =
     accountName
@@ -47,8 +47,20 @@ const Header = () => {
     ? isHospitalRole
       ? [
           { name: "Dashboard", path: dashboardPath },
+          { name: "Today Patients", path: "/hospital/dashboard?tab=today-patients" },
+          { name: "Doctor Attendance", path: "/hospital/dashboard?tab=doctor-attendance" },
           { name: "Department", path: "/hospital/department" },
           { name: "Doctors", path: "/hospital/doctors" },
+        ]
+      : user?.role === "doctor"
+      ? [
+          { name: "Dashboard", path: dashboardPath },
+          { name: "Patients", path: "/doctor/dashboard#patients" },
+        ]
+      : user?.role === "user"
+      ? [
+          { name: "Dashboard", path: dashboardPath },
+          { name: "History", path: "/user/dashboard?view=history" },
         ]
       : [{ name: "Dashboard", path: dashboardPath }]
     : [
@@ -67,7 +79,11 @@ const Header = () => {
         <div className="flex flex-wrap items-center gap-3">
           <nav className="flex flex-wrap items-center gap-2">
             {navLinks.map((link) => {
-              const active = location.pathname === link.path || (location.pathname === "/" && link.path === "/signup");
+              const currentPath = `${location.pathname}${location.search}${location.hash}`;
+              const linkHasState = link.path.includes("?") || link.path.includes("#");
+              const active = linkHasState
+                ? currentPath === link.path
+                : location.pathname === link.path || (location.pathname === "/" && link.path === "/signup");
               return (
                 <Link
                   key={link.path}

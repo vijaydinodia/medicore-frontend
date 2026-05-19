@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import axiosInstance from "../api";
 
@@ -41,15 +41,15 @@ const EditProfile = ({ user, onUpdated, buttonClassName = "", triggerClassName =
 
   const isDoctor = user?.role === "doctor";
 
-  const initials = useMemo(() => {
-    const source = getDisplayName(user);
-    return source
-      .split(" ")
-      .filter(Boolean)
+  const nameParts = getDisplayName(user).split(" ").filter(Boolean);
+  let initials = "A";
+
+  if (nameParts.length > 0) {
+    initials = nameParts
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase())
-      .join("") || "A";
-  }, [user]);
+      .join("");
+  }
 
   const openEditor = () => {
     setForm({

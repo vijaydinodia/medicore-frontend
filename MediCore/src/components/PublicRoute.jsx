@@ -2,10 +2,10 @@ import { Navigate } from "react-router-dom";
 import { getAuthInfo } from "../custom_hook/useAuth";
 
 const PublicRoute = ({ children }) => {
-  const { isAuthenticated, dashboardPath } = getAuthInfo();
+  const auth = getAuthInfo();
 
-  if (isAuthenticated) {
-    return <Navigate to={dashboardPath} replace />;
+  if (auth.isAuthenticated) {
+    return <Navigate to={auth.dashboardPath} replace />;
   }
 
   return children;

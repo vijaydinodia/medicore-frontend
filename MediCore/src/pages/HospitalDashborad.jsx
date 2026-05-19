@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../api";
 import AddDepartment from "../components/AddDepartment";
 import AddDoctor from "../components/AddDoctor";
@@ -84,42 +85,49 @@ const Modal = ({ title, subtitle, onClose, children }) => (
 
 const getRecordId = (value) => value?._id || value || "";
 const getDoctorImage = (doctor) => doctor.profileImage || doctor.doctorImage?.profileImage || "";
+const getToday = () => new Date().toISOString().slice(0, 10);
+const reportTabs = [
+  { id: "overview", label: "Overview" },
+  { id: "today-patients", label: "Today Patients" },
+  { id: "doctor-attendance", label: "Doctor Attendance" },
+];
 
 const HospitalDashborad = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { user: currentUser } = useAuth();
   const hospitalId = getRecordId(currentUser?.hospitalId);
   const [activeForm, setActiveForm] = useState("");
+  const [statsDate, setStatsDate] = useState(getToday());
   const [departments, setDepartments] = useState([]);
   const [subDepartments, setSubDepartments] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [patientStats, setPatientStats] = useState({
+    todayPatients: 0,
+    reachedPatients: 0,
+    completedPatients: 0,
+    doctorsAttended: 0,
+    doctorStats: [],
+    appointments: [],
+  });
   const [searchTerm, setSearchTerm] = useState("");
+  const [patientSearchTerm, setPatientSearchTerm] = useState("");
+  const [patientStatusFilter, setPatientStatusFilter] = useState("all");
+  const [patientSortKey, setPatientSortKey] = useState("timeSlot");
+  const [patientSortDirection, setPatientSortDirection] = useState("asc");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  const hospital = useMemo(
-    () => ({
-      hospitalName: currentUser?.name || "Your Hospital",
-      email: currentUser?.email || "",
-      status: currentUser?.status || "approved",
-      isActive: (currentUser?.status || "approved") !== "rejected",
-    }),
-    [currentUser],
-  );
+  const hospital = {
+    hospitalName: currentUser?.name || "Your Hospital",
+    email: currentUser?.email || "",
+    status: currentUser?.status || "approved",
+    isActive: (currentUser?.status || "approved") !== "rejected",
+  };
 
-  const filteredDepartments = useMemo(
-    () => departments.filter((item) => getRecordId(item.hospitalId) === hospitalId),
-    [departments, hospitalId],
-  );
-
-  const filteredSubDepartments = useMemo(
-    () => subDepartments.filter((item) => getRecordId(item.hospitalId) === hospitalId),
-    [subDepartments, hospitalId],
-  );
-
-  const filteredDoctors = useMemo(
-    () => doctors.filter((item) => getRecordId(item.hospitalId) === hospitalId),
-    [doctors, hospitalId],
-  );
+  const filteredDepartments = departments.filter((item) => getRecordId(item.hospitalId) === hospitalId);
+  const filteredSubDepartments = subDepartments.filter((item) => getRecordId(item.hospitalId) === hospitalId);
+  const filteredDoctors = doctors.filter((item) => getRecordId(item.hospitalId) === hospitalId);
 
   const searchRecords = (items, keys) => {
     const query = searchTerm.trim().toLowerCase();
@@ -130,26 +138,13 @@ const HospitalDashborad = () => {
     );
   };
 
-  const visibleDepartments = useMemo(
-    () => searchRecords(filteredDepartments, ["departmentName", "departmentCode", "description", "status"]),
-    [filteredDepartments, searchTerm],
-  );
+  const visibleDepartments = searchRecords(filteredDepartments, ["departmentName", "departmentCode", "description", "status"]);
+  const visibleSubDepartments = searchRecords(filteredSubDepartments, ["subDepartmentName", "subDepartmentCode", "description", "status"]);
+  const visibleDoctors = searchRecords(filteredDoctors, ["doctorName", "doctorCode", "email", "specialization", "qualification", "status"]);
 
-  const visibleSubDepartments = useMemo(
-    () => searchRecords(filteredSubDepartments, ["subDepartmentName", "subDepartmentCode", "description", "status"]),
-    [filteredSubDepartments, searchTerm],
-  );
-
-  const visibleDoctors = useMemo(
-    () => searchRecords(filteredDoctors, ["doctorName", "doctorCode", "email", "specialization", "qualification", "status"]),
-    [filteredDoctors, searchTerm],
-  );
-
-  const statusTone = useMemo(() => {
-    if (hospital.status === "approved") return "success";
-    if (hospital.status === "rejected") return "danger";
-    return "warning";
-  }, [hospital.status]);
+  let statusTone = "warning";
+  if (hospital.status === "approved") statusTone = "success";
+  if (hospital.status === "rejected") statusTone = "danger";
 
   const loadDashboard = async () => {
     if (!hospitalId) {
@@ -160,15 +155,15 @@ const HospitalDashborad = () => {
     try {
       setLoading(true);
       setMessage("");
-      const [departmentRes, subDepartmentRes, doctorRes] = await Promise.all([
-        axiosInstance.get("/department/getAllDepartments"),
-        axiosInstance.get("/sub-department/getAllSubDepartments"),
-        axiosInstance.get("/doctor/getAllDoctors"),
-      ]);
+      const departmentRes = await axiosInstance.get("/department/getAllDepartments");
+      const subDepartmentRes = await axiosInstance.get("/sub-department/getAllSubDepartments");
+      const doctorRes = await axiosInstance.get("/doctor/getAllDoctors");
+      const patientStatsRes = await axiosInstance.get(`/appointment/hospitalStats?date=${statsDate}`);
 
       setDepartments(departmentRes.data.data || []);
       setSubDepartments(subDepartmentRes.data.data || []);
       setDoctors(doctorRes.data.data || []);
+      setPatientStats(patientStatsRes.data.data || {});
     } catch (error) {
       setMessage(error.response?.data?.message || "Unable to load hospital dashboard data.");
     } finally {
@@ -178,7 +173,7 @@ const HospitalDashborad = () => {
 
   useEffect(() => {
     loadDashboard();
-  }, [hospitalId]);
+  }, [hospitalId, statsDate]);
 
   const closeForm = () => setActiveForm("");
   const afterCreate = () => {
@@ -186,6 +181,63 @@ const HospitalDashborad = () => {
   };
 
   const canAddNestedRecords = filteredDepartments.length > 0;
+  const tabFromUrl = new URLSearchParams(location.search).get("tab");
+  const activeReportTab = reportTabs.some((tab) => tab.id === tabFromUrl) ? tabFromUrl : "overview";
+  const openReportTab = (tabId) => {
+    navigate(`/hospital/dashboard?tab=${tabId}`);
+  };
+  const patientSearch = patientSearchTerm.trim().toLowerCase();
+  const visiblePatientAppointments = (patientStats.appointments || [])
+    .filter((appointment) => {
+      const statusMatch =
+        patientStatusFilter === "all" ||
+        appointment.status === patientStatusFilter ||
+        (patientStatusFilter === "reached" && appointment.isReached);
+
+      if (!statusMatch) return false;
+      if (!patientSearch) return true;
+
+      const values = [
+        appointment.userId?.name,
+        appointment.userId?.email,
+        appointment.userId?.phone,
+        appointment.doctorId?.doctorName,
+        appointment.doctorId?.specialization,
+        appointment.timeSlot,
+        appointment.status,
+      ];
+      return values.some((value) => String(value || "").toLowerCase().includes(patientSearch));
+    })
+    .sort((a, b) => {
+      const getValue = (appointment) => {
+        if (patientSortKey === "patient") return appointment.userId?.name || "";
+        if (patientSortKey === "doctor") return appointment.doctorId?.doctorName || "";
+        return appointment[patientSortKey] || "";
+      };
+
+      return String(getValue(a)).localeCompare(String(getValue(b)), undefined, { numeric: true }) * (patientSortDirection === "asc" ? 1 : -1);
+    });
+  const visibleDoctorStats = (patientStats.doctorStats || [])
+    .filter((doctor) => {
+      if (!patientSearch) return true;
+      return [doctor.doctorName, doctor.specialization, doctor.attendedPatients].some((value) =>
+        String(value || "").toLowerCase().includes(patientSearch),
+      );
+    })
+    .sort((a, b) => {
+      const aValue = patientSortKey === "doctor" ? a.doctorName : a.attendedPatients;
+      const bValue = patientSortKey === "doctor" ? b.doctorName : b.attendedPatients;
+      return String(aValue).localeCompare(String(bValue), undefined, { numeric: true }) * (patientSortDirection === "asc" ? 1 : -1);
+    });
+  const changePatientSort = (key) => {
+    if (patientSortKey === key) {
+      setPatientSortDirection((direction) => (direction === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setPatientSortKey(key);
+    setPatientSortDirection("asc");
+  };
 
   return (
     <main className="min-h-[calc(100svh-73px)] bg-slate-50 px-4 py-8 text-left dark:bg-slate-950 sm:px-6">
@@ -226,12 +278,23 @@ const HospitalDashborad = () => {
         </header>
 
         <section className="mt-6">
-          <SearchInput
-            value={searchTerm}
-            onChange={setSearchTerm}
-            placeholder="Search departments, subdepartments, or doctors"
-            className="max-w-xl"
-          />
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <SearchInput
+              value={searchTerm}
+              onChange={setSearchTerm}
+              placeholder="Search departments, subdepartments, or doctors"
+              className="max-w-xl"
+            />
+            <label className="w-full max-w-xs">
+              <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Patient stats date</span>
+              <input
+                type="date"
+                value={statsDate}
+                onChange={(event) => setStatsDate(event.target.value)}
+                className="mt-2 h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-teal-950"
+              />
+            </label>
+          </div>
         </section>
 
         {message && (
@@ -240,94 +303,203 @@ const HospitalDashborad = () => {
           </div>
         )}
 
-        <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Departments" value={visibleDepartments.length} icon="department" />
-          <StatCard label="Subdepartments" value={visibleSubDepartments.length} icon="subDepartment" />
-          <StatCard label="Doctors" value={visibleDoctors.length} icon="doctor" />
-          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Status</p>
-                <div className="mt-3"><Pill tone={statusTone}>{hospital.status}</Pill></div>
-              </div>
-              <span className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-200">
-                <Icon name="activity" />
-              </span>
-            </div>
-          </div>
+        <section className="mt-6 flex flex-wrap gap-2">
+          {reportTabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => openReportTab(tab.id)}
+              className={`h-11 rounded-md px-4 text-sm font-black transition ${
+                activeReportTab === tab.id
+                  ? "bg-teal-700 text-white shadow-sm dark:bg-teal-400 dark:text-slate-950"
+                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </section>
 
-        <section className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-xl font-black text-slate-950 dark:text-white">{hospital.hospitalName}</h2>
-                <p className="mt-1 break-all text-sm text-slate-500 dark:text-slate-400">{hospital.email || "No email available"}</p>
-              </div>
-              <Pill tone={hospital.isActive ? "success" : "warning"}>{hospital.isActive ? "Active" : "Inactive"}</Pill>
-            </div>
-
-            <div className="mt-6 grid gap-3 md:grid-cols-3">
-              {visibleDepartments.slice(0, 6).map((department) => (
-                <div key={department._id} className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
-                  <p className="font-bold text-slate-950 dark:text-white">{department.departmentName}</p>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{department.departmentCode}</p>
+        {activeReportTab === "overview" && (
+          <>
+            <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <StatCard label="Departments" value={visibleDepartments.length} icon="department" />
+              <StatCard label="Subdepartments" value={visibleSubDepartments.length} icon="subDepartment" />
+              <StatCard label="Doctors" value={visibleDoctors.length} icon="doctor" />
+              <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Status</p>
+                    <div className="mt-3"><Pill tone={statusTone}>{hospital.status}</Pill></div>
+                  </div>
+                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-200">
+                    <Icon name="activity" />
+                  </span>
                 </div>
-              ))}
-              {!loading && visibleDepartments.length === 0 && (
-                <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400 md:col-span-3">
-                  {searchTerm ? "No departments match your search." : "No departments yet. Start by adding your first department."}
+              </div>
+            </section>
+
+            <section className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+              <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-950 dark:text-white">{hospital.hospitalName}</h2>
+                    <p className="mt-1 break-all text-sm text-slate-500 dark:text-slate-400">{hospital.email || "No email available"}</p>
+                  </div>
+                  <Pill tone={hospital.isActive ? "success" : "warning"}>{hospital.isActive ? "Active" : "Inactive"}</Pill>
+                </div>
+
+                <div className="mt-6 grid gap-3 md:grid-cols-3">
+                  {visibleDepartments.slice(0, 6).map((department) => (
+                    <div key={department._id} className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
+                      <p className="font-bold text-slate-950 dark:text-white">{department.departmentName}</p>
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{department.departmentCode}</p>
+                    </div>
+                  ))}
+                  {!loading && visibleDepartments.length === 0 && (
+                    <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400 md:col-span-3">
+                      {searchTerm ? "No departments match your search." : "No departments yet. Start by adding your first department."}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
+                  <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Subdepartments</h3>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    {visibleSubDepartments.slice(0, 4).map((subDepartment) => (
+                      <div key={subDepartment._id} className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
+                        <p className="font-bold text-slate-950 dark:text-white">{subDepartment.subDepartmentName}</p>
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{subDepartment.subDepartmentCode}</p>
+                      </div>
+                    ))}
+                    {!loading && visibleSubDepartments.length === 0 && (
+                      <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400 md:col-span-2">
+                        {searchTerm ? "No subdepartments match your search." : "No subdepartments added yet."}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                <h2 className="text-xl font-black text-slate-950 dark:text-white">Doctors roster</h2>
+                <div className="mt-5 space-y-3">
+                  {visibleDoctors.slice(0, 5).map((doctor) => (
+                    <div key={doctor._id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md bg-teal-700 text-sm font-black text-white dark:bg-teal-500 dark:text-slate-950">
+                          {getDoctorImage(doctor) ? (
+                            <img src={getDoctorImage(doctor)} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            (doctor.doctorName || "D").slice(0, 2).toUpperCase()
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate font-bold text-slate-950 dark:text-white">{doctor.doctorName}</p>
+                          <p className="truncate text-sm text-slate-500 dark:text-slate-400">{doctor.specialization}</p>
+                        </div>
+                      </div>
+                      <Pill tone={doctor.status === "active" ? "success" : "warning"}>{doctor.status}</Pill>
+                    </div>
+                  ))}
+                  {!loading && visibleDoctors.length === 0 && (
+                    <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                      {searchTerm ? "No doctors match your search." : "No doctors added yet."}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          </>
+        )}
+
+        {activeReportTab !== "overview" && (
+          <>
+            <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <StatCard label="Patients today" value={patientStats.todayPatients || 0} icon="activity" />
+              <StatCard label="Patients reached" value={patientStats.reachedPatients || 0} icon="activity" />
+              <StatCard label="Completed visits" value={patientStats.completedPatients || 0} icon="activity" />
+              <StatCard label="Doctors attended" value={patientStats.doctorsAttended || 0} icon="doctor" />
+            </section>
+
+            <section className="mt-6 grid gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 lg:grid-cols-[1fr_auto_auto] lg:items-end">
+              <SearchInput value={patientSearchTerm} onChange={setPatientSearchTerm} placeholder="Search patients or doctors" />
+              <label className="block">
+                <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Filter</span>
+                <select
+                  value={patientStatusFilter}
+                  onChange={(event) => setPatientStatusFilter(event.target.value)}
+                  className="mt-2 h-11 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                >
+                  <option value="all">All</option>
+                  <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="reached">Reached</option>
+                </select>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => changePatientSort("timeSlot")} className="h-11 rounded-md border border-slate-200 px-3 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200">Time</button>
+                <button type="button" onClick={() => changePatientSort("patient")} className="h-11 rounded-md border border-slate-200 px-3 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200">Patient</button>
+                <button type="button" onClick={() => changePatientSort("doctor")} className="h-11 rounded-md border border-slate-200 px-3 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200">Doctor</button>
+                <button type="button" onClick={() => changePatientSort("status")} className="h-11 rounded-md border border-slate-200 px-3 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200">Status</button>
+              </div>
+            </section>
+
+            <section className="mt-6">
+              {activeReportTab === "doctor-attendance" && (
+                <div id="doctor-attendance" className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                  <h2 className="text-xl font-black text-slate-950 dark:text-white">Doctor attendance</h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Reached patients by doctor for the selected day.</p>
+                  <div className="mt-5 space-y-3">
+                    {visibleDoctorStats.map((doctor) => (
+                      <div key={doctor.doctorId} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+                        <div className="min-w-0">
+                          <p className="truncate font-bold text-slate-950 dark:text-white">{doctor.doctorName}</p>
+                          <p className="truncate text-sm text-slate-500 dark:text-slate-400">{doctor.specialization || "Doctor"}</p>
+                        </div>
+                        <Pill tone="success">{doctor.attendedPatients} patient(s)</Pill>
+                      </div>
+                    ))}
+                    {!loading && visibleDoctorStats.length === 0 && (
+                      <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                        No doctor has marked a patient reached for this day.
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
-            </div>
 
-            <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
-              <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Subdepartments</h3>
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
-                {visibleSubDepartments.slice(0, 4).map((subDepartment) => (
-                  <div key={subDepartment._id} className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
-                    <p className="font-bold text-slate-950 dark:text-white">{subDepartment.subDepartmentName}</p>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{subDepartment.subDepartmentCode}</p>
+              {activeReportTab === "today-patients" && (
+                <div id="today-patients" className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                  <h2 className="text-xl font-black text-slate-950 dark:text-white">Today patient list</h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Booked patients and attendance status for the selected day.</p>
+                  <div className="mt-5 space-y-3">
+                    {visiblePatientAppointments.slice(0, 8).map((appointment) => (
+                      <div key={appointment._id} className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900 md:grid-cols-[1fr_1fr_auto] md:items-center">
+                        <div className="min-w-0">
+                          <p className="truncate font-bold text-slate-950 dark:text-white">{appointment.userId?.name || "Patient"}</p>
+                          <p className="truncate text-sm text-slate-500 dark:text-slate-400">{appointment.timeSlot || "-"}</p>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-slate-800 dark:text-slate-100">{appointment.doctorId?.doctorName || "Doctor"}</p>
+                          <p className="truncate text-sm text-slate-500 dark:text-slate-400">{appointment.doctorId?.specialization || ""}</p>
+                        </div>
+                        <Pill tone={appointment.isReached ? "success" : "warning"}>{appointment.isReached ? "Reached" : appointment.status}</Pill>
+                      </div>
+                    ))}
+                    {!loading && visiblePatientAppointments.length === 0 && (
+                      <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                        No patients booked for this day.
+                      </div>
+                    )}
                   </div>
-                ))}
-                {!loading && visibleSubDepartments.length === 0 && (
-                  <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400 md:col-span-2">
-                    {searchTerm ? "No subdepartments match your search." : "No subdepartments added yet."}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-            <h2 className="text-xl font-black text-slate-950 dark:text-white">Doctors roster</h2>
-            <div className="mt-5 space-y-3">
-              {visibleDoctors.slice(0, 5).map((doctor) => (
-                <div key={doctor._id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md bg-teal-700 text-sm font-black text-white dark:bg-teal-500 dark:text-slate-950">
-                      {getDoctorImage(doctor) ? (
-                        <img src={getDoctorImage(doctor)} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        (doctor.doctorName || "D").slice(0, 2).toUpperCase()
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate font-bold text-slate-950 dark:text-white">{doctor.doctorName}</p>
-                      <p className="truncate text-sm text-slate-500 dark:text-slate-400">{doctor.specialization}</p>
-                    </div>
-                  </div>
-                  <Pill tone={doctor.status === "active" ? "success" : "warning"}>{doctor.status}</Pill>
-                </div>
-              ))}
-              {!loading && visibleDoctors.length === 0 && (
-                <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                  {searchTerm ? "No doctors match your search." : "No doctors added yet."}
                 </div>
               )}
-            </div>
-          </div>
-        </section>
+            </section>
+          </>
+        )}
       </div>
 
       {activeForm === "department" && (

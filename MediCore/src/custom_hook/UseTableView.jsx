@@ -1,146 +1,139 @@
-import { useState, useCallback } from 'react';
+import { useState } from "react";
 
 export const useTableView = (initialData = []) => {
-  // View mode: 'table' or 'card'
-  const [viewMode, setViewMode] = useState(() => {
-    const saved = localStorage.getItem('viewMode');
-    return saved || 'table';
-  });
+  const savedViewMode = localStorage.getItem("viewMode") || "table";
 
-  // Editing state
+  const [viewMode, setViewMode] = useState(savedViewMode);
   const [isEditing, setIsEditing] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [selectedItems, setSelectedItems] = useState([]);
-
-  // Table data
   const [tableData, setTableData] = useState(initialData);
-  const [originalData, setOriginalData] = useState(initialData);
+  const [oldData, setOldData] = useState(initialData);
 
-  // Toggle between table and card view
-  const toggleViewMode = useCallback(() => {
-    const newMode = viewMode === 'table' ? 'card' : 'table';
-    setViewMode(newMode);
-    localStorage.setItem('viewMode', newMode);
-  }, [viewMode]);
+  const toggleViewMode = () => {
+    let nextMode = "table";
 
-  // Start editing an item
-  const startEditing = useCallback((item) => {
-    setIsEditing(true);
+    if (viewMode === "table") {
+      nextMode = "card";
+    }
+
+    setViewMode(nextMode);
+    localStorage.setItem("viewMode", nextMode);
+  };
+
+  const startEditing = (item) => {
+    setOldData(tableData);
     setEditingItem(item);
-    setOriginalData([...tableData]);
-  }, [tableData]);
+    setIsEditing(true);
+  };
 
-  // Cancel editing
-  const cancelEditing = useCallback(() => {
-    setIsEditing(false);
+  const cancelEditing = () => {
+    setTableData(oldData);
     setEditingItem(null);
-    setTableData([...originalData]);
-  }, [originalData]);
-
-  // Save edited item
-  const saveEditing = useCallback((updatedItem) => {
-    setTableData(prevData =>
-      prevData.map(item =>
-        item.id === updatedItem.id ? updatedItem : item
-      )
-    );
     setIsEditing(false);
+  };
+
+  const saveEditing = (updatedItem) => {
+    const updatedData = tableData.map((item) => {
+      if (item.id === updatedItem.id || item._id === updatedItem._id) {
+        return updatedItem;
+      }
+
+      return item;
+    });
+
+    setTableData(updatedData);
     setEditingItem(null);
-  }, []);
+    setIsEditing(false);
+  };
 
-  // Update item in editing
-  const updateEditingItem = useCallback((field, value) => {
-    setEditingItem(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  }, []);
+  const updateEditingItem = (field, value) => {
+    setEditingItem({
+      ...editingItem,
+      [field]: value,
+    });
+  };
 
-  // Select/deselect items
-  const toggleItemSelection = useCallback((itemId) => {
-    setSelectedItems(prev =>
-      prev.includes(itemId)
-        ? prev.filter(id => id !== itemId)
-        : [...prev, itemId]
-    );
-  }, []);
+  const toggleItemSelection = (itemId) => {
+    if (selectedItems.includes(itemId)) {
+      setSelectedItems(selectedItems.filter((id) => id !== itemId));
+    } else {
+      setSelectedItems([...selectedItems, itemId]);
+    }
+  };
 
-  // Select all items
-  const selectAllItems = useCallback(() => {
-    setSelectedItems(tableData.map(item => item.id));
-  }, [tableData]);
+  const selectAllItems = () => {
+    setSelectedItems(tableData.map((item) => item.id || item._id));
+  };
 
-  // Deselect all items
-  const deselectAllItems = useCallback(() => {
+  const deselectAllItems = () => {
     setSelectedItems([]);
-  }, []);
+  };
 
-  // Delete selected items
-  const deleteSelectedItems = useCallback(() => {
-    setTableData(prevData =>
-      prevData.filter(item => !selectedItems.includes(item.id))
-    );
+  const deleteSelectedItems = () => {
+    const filteredData = tableData.filter((item) => {
+      const id = item.id || item._id;
+      return !selectedItems.includes(id);
+    });
+
+    setTableData(filteredData);
     setSelectedItems([]);
-  }, [selectedItems]);
+  };
 
-  // Add new item
-  const addItem = useCallback((newItem) => {
-    const itemWithId = {
+  const addItem = (newItem) => {
+    const item = {
       ...newItem,
-      id: Date.now().toString() // Simple ID generation
+      id: Date.now().toString(),
     };
-    setTableData(prevData => [...prevData, itemWithId]);
-  }, []);
 
-  // Update existing item
-  const updateItem = useCallback((updatedItem) => {
-    setTableData(prevData =>
-      prevData.map(item =>
-        item.id === updatedItem.id ? updatedItem : item
-      )
-    );
-  }, []);
+    setTableData([...tableData, item]);
+  };
 
-  // Delete item
-  const deleteItem = useCallback((itemId) => {
-    setTableData(prevData =>
-      prevData.filter(item => item.id !== itemId)
-    );
-  }, []);
+  const updateItem = (updatedItem) => {
+    const updatedData = tableData.map((item) => {
+      if (item.id === updatedItem.id || item._id === updatedItem._id) {
+        return updatedItem;
+      }
 
-  // Bulk update selected items
-  const bulkUpdateItems = useCallback((updates) => {
-    setTableData(prevData =>
-      prevData.map(item =>
-        selectedItems.includes(item.id)
-          ? { ...item, ...updates }
-          : item
-      )
-    );
-  }, [selectedItems]);
+      return item;
+    });
+
+    setTableData(updatedData);
+  };
+
+  const deleteItem = (itemId) => {
+    setTableData(tableData.filter((item) => (item.id || item._id) !== itemId));
+  };
+
+  const bulkUpdateItems = (updates) => {
+    const updatedData = tableData.map((item) => {
+      const id = item.id || item._id;
+
+      if (selectedItems.includes(id)) {
+        return { ...item, ...updates };
+      }
+
+      return item;
+    });
+
+    setTableData(updatedData);
+  };
 
   return {
-    // View mode
     viewMode,
     toggleViewMode,
-
-    // Editing state
     isEditing,
     editingItem,
     startEditing,
     cancelEditing,
     saveEditing,
     updateEditingItem,
-
-    // Selection
     selectedItems,
     toggleItemSelection,
     selectAllItems,
     deselectAllItems,
     isAllSelected: selectedItems.length === tableData.length && tableData.length > 0,
     hasSelections: selectedItems.length > 0,
-
-    // Data management
     tableData,
     setTableData,
     addItem,
@@ -148,9 +141,7 @@ export const useTableView = (initialData = []) => {
     deleteItem,
     deleteSelectedItems,
     bulkUpdateItems,
-
-    // Utilities
     itemCount: tableData.length,
-    selectedCount: selectedItems.length
+    selectedCount: selectedItems.length,
   };
 };

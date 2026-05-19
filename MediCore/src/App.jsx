@@ -11,7 +11,6 @@ const ResetPassword = lazy(() => import("./components/ResetPassword"));
 const VerifyOtp = lazy(() => import("./components/VerifyOtp"));
 const AddHospital = lazy(() => import("./components/AddHospital"));
 const SuperAdminDashBorad = lazy(() => import("./pages/SuperAdminDashBorad"));
-const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const UserDashboard = lazy(() => import("./pages/UserDashboard"));
 const HospitalDashborad = lazy(() => import("./pages/HospitalDashborad"));
 const DoctorDashboard = lazy(() => import("./pages/DoctorDashboard"));
@@ -37,7 +36,7 @@ const App = () => {
       <Header />
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/" element={withPublic(<Login />)} />
+          <Route path="/" element={<UserDashboard />} />
           <Route path="/signup" element={withPublic(<SignUp />)} />
           <Route path="/login" element={withPublic(<Login />)} />
           <Route path="/forget" element={withPublic(<ForgetPassword />)} />
@@ -47,14 +46,13 @@ const App = () => {
           <Route path="/add-hospital" element={<AddHospital />} />
 
           <Route path="/super-admin/dashboard" element={withProtected(<SuperAdminDashBorad />, ["superAdmin"])} />
-          <Route path="/admin/dashboard" element={withProtected(<AdminDashboard />, ["admin"])} />
           <Route path="/hospital/dashboard" element={withProtected(<HospitalDashborad />, ["hospital", "admin"])} />
           <Route path="/doctor/dashboard" element={withProtected(<DoctorDashboard />, ["doctor"])} />
-          <Route path="/user/dashboard" element={withProtected(<UserDashboard />, ["user"])} />
+          <Route path="/user/dashboard" element={<UserDashboard />} />
 
           <Route path="/hospital/department" element={withProtected(<Department />, ["hospital", "admin"])} />
           <Route path="/hospital/doctors" element={withProtected(<Doctors />, ["hospital", "admin"])} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

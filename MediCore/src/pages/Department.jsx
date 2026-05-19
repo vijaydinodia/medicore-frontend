@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api";
 import SearchInput from "../components/SearchInput";
@@ -15,6 +15,9 @@ const Department = () => {
   const [subDepartments, setSubDepartments] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortKey, setSortKey] = useState("departmentName");
+  const [sortDirection, setSortDirection] = useState("asc");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -36,11 +39,9 @@ const Department = () => {
       try {
         setLoading(true);
         setMessage("");
-        const [departmentRes, subDepartmentRes, doctorRes] = await Promise.all([
-          axiosInstance.get("/department/getAllDepartments"),
-          axiosInstance.get("/sub-department/getAllSubDepartments"),
-          axiosInstance.get("/doctor/getAllDoctors"),
-        ]);
+        const departmentRes = await axiosInstance.get("/department/getAllDepartments");
+        const subDepartmentRes = await axiosInstance.get("/sub-department/getAllSubDepartments");
+        const doctorRes = await axiosInstance.get("/doctor/getAllDoctors");
 
         setDepartments(departmentRes.data.data || []);
         setSubDepartments(subDepartmentRes.data.data || []);
@@ -55,20 +56,31 @@ const Department = () => {
     fetchRecords();
   }, [hospitalId, isHospitalWorkspace]);
 
-  const hospitalDepartments = useMemo(
-    () => departments.filter((item) => getRecordId(item.hospitalId) === hospitalId),
-    [departments, hospitalId],
-  );
+  const hospitalDepartments = departments.filter((item) => getRecordId(item.hospitalId) === hospitalId);
+  const query = searchTerm.trim().toLowerCase();
+  const visibleDepartments = hospitalDepartments
+    .filter((item) => {
+      if (statusFilter !== "all" && item.status !== statusFilter) return false;
+      if (!query) return true;
 
-  const visibleDepartments = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-    if (!query) return hospitalDepartments;
+      const values = [item.departmentName, item.departmentCode, item.description, item.status];
+      return values.some((value) => String(value || "").toLowerCase().includes(query));
+    })
+    .sort((a, b) => {
+      const aValue = a[sortKey] || "";
+      const bValue = b[sortKey] || "";
+      return String(aValue).localeCompare(String(bValue), undefined, { numeric: true }) * (sortDirection === "asc" ? 1 : -1);
+    });
 
-    return hospitalDepartments.filter((item) =>
-      [item.departmentName, item.departmentCode, item.description, item.status]
-        .some((value) => String(value || "").toLowerCase().includes(query)),
-    );
-  }, [hospitalDepartments, searchTerm]);
+  const changeSort = (key) => {
+    if (sortKey === key) {
+      setSortDirection((direction) => (direction === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setSortKey(key);
+    setSortDirection("asc");
+  };
 
   const getSubDepartments = (departmentId) =>
     subDepartments.filter((item) => getRecordId(item.hospitalId) === hospitalId && getRecordId(item.departmentId) === departmentId);
@@ -85,8 +97,21 @@ const Department = () => {
           <p className="mt-3 max-w-2xl text-slate-600 dark:text-slate-300">View departments, subdepartments, and doctor coverage for this hospital.</p>
         </header>
 
-        <section className="mt-6">
+        <section className="mt-6 grid gap-3 lg:grid-cols-[1fr_auto_auto] lg:items-end">
           <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Search departments" className="max-w-xl" />
+          <label className="block">
+            <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Status</span>
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="mt-2 h-11 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => changeSort("departmentName")} className="h-11 rounded-md border border-slate-200 px-3 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200">Name</button>
+            <button type="button" onClick={() => changeSort("departmentCode")} className="h-11 rounded-md border border-slate-200 px-3 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200">Code</button>
+            <button type="button" onClick={() => changeSort("status")} className="h-11 rounded-md border border-slate-200 px-3 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200">Status</button>
+          </div>
         </section>
 
         {message && (

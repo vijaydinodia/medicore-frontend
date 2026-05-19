@@ -1,27 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from "react";
 
 export const useTheme = () => {
-  const [theme, setTheme] = useState(() => {
-    // Check localStorage first, then system preference
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      return savedTheme;
-    }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  });
+  const savedTheme = localStorage.getItem("theme");
+  const defaultTheme = savedTheme || "light";
+  const [theme, setTheme] = useState(defaultTheme);
 
   useEffect(() => {
-    const root = window.document.documentElement;
+    const html = document.documentElement;
 
-    // Toggle the Tailwind dark mode class
-    root.classList.toggle('dark', theme === 'dark');
+    if (theme === "dark") {
+      html.classList.add("dark");
+    } else {
+      html.classList.remove("dark");
+    }
 
-    // Save to localStorage
-    localStorage.setItem('theme', theme);
+    localStorage.setItem("theme", theme);
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
+    if (theme === "dark") {
+      setTheme("light");
+    } else {
+      setTheme("dark");
+    }
   };
 
   return { theme, toggleTheme };
