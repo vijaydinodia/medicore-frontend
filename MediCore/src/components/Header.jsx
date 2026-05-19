@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useTheme } from "../custom_hook/useTheme";
-import { getDashboardPath, useAuth } from "../custom_hook/useAuth";
+import { UseTheme } from "../custom_hook/UseTheme";
+import { getDashboardPath, UseAuth } from "../custom_hook/UseAuth";
 import ChangePassword from "./ChangePassword";
 import EditProfile from "./EditProfile";
 
 const Header = () => {
   const location = useLocation();
-  const { theme, toggleTheme } = useTheme();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { theme, toggleTheme } = UseTheme();
+  const { isAuthenticated, user, logout } = UseAuth();
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef(null);
   const hideHeader = location.pathname.startsWith("/super-admin");
@@ -71,13 +71,19 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-30 w-full border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
-      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
-        <Link to="/" className="text-2xl font-black tracking-tight text-teal-800 dark:text-teal-300">
-          MediCore
+      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 md:flex-row md:items-center md:justify-between">
+        <Link to="/" className="flex items-center gap-3 text-slate-950 dark:text-white">
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-700 text-lg font-black text-white shadow-sm dark:bg-teal-500 dark:text-slate-950">
+            M
+          </span>
+          <span>
+            <span className="block text-xl font-black leading-tight tracking-tight">MediCore</span>
+            <span className="block text-xs font-bold uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300">Care network</span>
+          </span>
         </Link>
 
         <div className="flex flex-wrap items-center gap-3">
-          <nav className="flex flex-wrap items-center gap-2">
+          <nav className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-900">
             {navLinks.map((link) => {
               const currentPath = `${location.pathname}${location.search}${location.hash}`;
               const linkHasState = link.path.includes("?") || link.path.includes("#");
@@ -90,7 +96,7 @@ const Header = () => {
                   to={link.path}
                   className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
                     active
-                      ? "bg-teal-50 text-teal-800 dark:bg-teal-950 dark:text-teal-200"
+                      ? "bg-white text-teal-800 shadow-sm dark:bg-slate-950 dark:text-teal-200"
                       : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
                   }`}
                 >

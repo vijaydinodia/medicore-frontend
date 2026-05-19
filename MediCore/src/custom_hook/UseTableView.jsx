@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export const useTableView = (initialData = []) => {
+export const UseTableView = (initialData = []) => {
   const savedViewMode = localStorage.getItem("viewMode") || "table";
 
   const [viewMode, setViewMode] = useState(savedViewMode);

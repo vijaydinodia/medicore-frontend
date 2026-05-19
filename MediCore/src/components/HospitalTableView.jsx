@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useTableView } from "../custom_hook/UseTableView";
+import { UseTableView } from "../custom_hook/UseTableView";
 import SearchInput from "./SearchInput";
 
 const icons = {
@@ -61,7 +61,17 @@ const StatusBadge = ({ children, tone }) => {
 
 const getHospitalImage = (hospital) => hospital.logo || hospital.images?.find((image) => image?.url)?.url || "";
 
-const HospitalTableView = ({ hospitals, onApprove, onReject, onToggleActive, onDelete, onRestore, onViewDetails }) => {
+const HospitalTableView = ({
+  hospitals,
+  onApprove,
+  onReject,
+  onToggleActive,
+  onDelete,
+  onRestore,
+  onViewDetails,
+  externalSearchTerm,
+  hideSearch = false,
+}) => {
   const {
     viewMode,
     toggleViewMode,
@@ -80,13 +90,15 @@ const HospitalTableView = ({ hospitals, onApprove, onReject, onToggleActive, onD
     deleteSelectedItems,
     itemCount,
     selectedCount,
-  } = useTableView(hospitals);
+  } = UseTableView(hospitals);
 
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
   const [searchTerm, setSearchTerm] = useState("");
 
+  const activeSearchTerm = externalSearchTerm ?? searchTerm;
+
   const filteredHospitals = hospitals.filter((hospital) => {
-    const query = searchTerm.trim().toLowerCase();
+    const query = activeSearchTerm.trim().toLowerCase();
     if (!query) return true;
 
     return [
@@ -292,12 +304,14 @@ const HospitalTableView = ({ hospitals, onApprove, onReject, onToggleActive, onD
           </span>
         </div>
 
-        <SearchInput
-          value={searchTerm}
-          onChange={setSearchTerm}
-          placeholder="Search hospitals"
-          className="w-full sm:max-w-xs"
-        />
+        {!hideSearch && (
+          <SearchInput
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Search hospitals"
+            className="w-full sm:max-w-xs"
+          />
+        )}
 
         {hasSelections && (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-900">

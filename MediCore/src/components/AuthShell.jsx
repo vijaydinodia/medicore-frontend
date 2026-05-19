@@ -4,16 +4,22 @@ const AuthShell = ({ title, subtitle, eyebrow, children, footer, wide = false })
       <div className="mx-auto grid min-h-[calc(100svh-137px)] w-full max-w-6xl items-center gap-8 lg:grid-cols-[1fr_0.95fr]">
         <section className="hidden lg:block">
           <div className="max-w-xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-teal-700 dark:text-teal-300">MediCore</p>
-            <h1 className="mt-5 text-5xl font-bold leading-tight text-slate-950 dark:text-white">
-              One secure place to continue your care.
+            <div className="flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-teal-700 text-lg font-black text-white shadow-sm dark:bg-teal-500 dark:text-slate-950">M</span>
+              <div>
+                <p className="text-lg font-black tracking-tight text-slate-950 dark:text-white">MediCore</p>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-300">Care network</p>
+              </div>
+            </div>
+            <h1 className="mt-8 text-5xl font-black leading-tight text-slate-950 dark:text-white">
+              Healthcare operations without the clutter.
             </h1>
             <p className="mt-5 max-w-lg text-base leading-7 text-slate-600 dark:text-slate-300">
               Sign in once and MediCore will take you to the workspace connected with your account.
             </p>
             <div className="mt-8 grid max-w-lg gap-3 sm:grid-cols-3">
-              {["Private access", "Saved records", "Quick updates"].map((item) => (
-                <div key={item} className="rounded-lg border border-white/70 bg-white/70 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur dark:border-slate-700/70 dark:bg-slate-900/55 dark:text-slate-200">
+              {["Role based", "Fast records", "Secure access"].map((item) => (
+                <div key={item} className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200">
                   {item}
                 </div>
               ))}
@@ -22,7 +28,7 @@ const AuthShell = ({ title, subtitle, eyebrow, children, footer, wide = false })
         </section>
 
         <section
-          className={`mx-auto w-full ${wide ? "max-w-2xl" : "max-w-md"} rounded-lg border border-white/80 bg-white/90 p-6 text-left shadow-2xl shadow-teal-900/10 backdrop-blur dark:border-slate-700/80 dark:bg-slate-900/88 sm:p-8`}
+          className={`mx-auto w-full ${wide ? "max-w-2xl" : "max-w-md"} rounded-lg border border-slate-200 bg-white p-6 text-left shadow-xl shadow-slate-900/10 dark:border-slate-800 dark:bg-slate-950 sm:p-8`}
         >
           <div className="mb-6">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-300">

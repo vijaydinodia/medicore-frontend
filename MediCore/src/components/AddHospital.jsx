@@ -1,8 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api";
 
 const hospitalTypes = ["Government", "Private", "Trust"];
+const facilities = [
+  { label: "Emergency", name: "emergencyAvailable" },
+  { label: "Ambulance", name: "ambulanceAvailable" },
+  { label: "ICU", name: "ICUAvailable" },
+  { label: "Blood bank", name: "bloodBankAvailable" },
+  { label: "Pharmacy", name: "pharmacyAvailable" },
+];
+
 let documentRowId = 0;
 const createDocumentRow = () => ({
   id: `document-${documentRowId++}`,
@@ -10,40 +18,81 @@ const createDocumentRow = () => ({
   file: null,
 });
 
+const initialForm = {
+  hospitalName: "",
+  hospitalCode: "",
+  hospitalType: "Government",
+  email: "",
+  phone: "",
+  alternatePhone: "",
+  website: "",
+  registrationNumber: "",
+  establishedYear: "",
+  stateId: "",
+  districtId: "",
+  cityId: "",
+  address: "",
+  pincode: "",
+  totalBeds: "",
+  availableBeds: "",
+  totalDoctors: "",
+  totalStaff: "",
+  emergencyAvailable: false,
+  ambulanceAvailable: false,
+  ICUAvailable: false,
+  bloodBankAvailable: false,
+  pharmacyAvailable: false,
+  description: "",
+};
+
 const getApiErrorMessage = (error) => {
   const data = error.response?.data;
   if (typeof data === "string") return data;
   return data?.error || data?.message || error.message || "Could not submit hospital.";
 };
 
+const paths = {
+  hospital: "M4 20V7l8-4 8 4v13M8 20v-8h8v8M3 20h18",
+  location: "M12 21s7-5.4 7-12a7 7 0 10-14 0c0 6.6 7 12 7 12zM12 11a2 2 0 100-4 2 2 0 000 4z",
+  activity: "M22 12h-4l-3 8-6-16-3 8H2",
+  file: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M8 13h8M8 17h5",
+  plus: "M12 5v14M5 12h14",
+  close: "M6 18L18 6M6 6l12 12",
+  check: "M5 13l4 4L19 7",
+  arrow: "M19 12H5M12 19l-7-7 7-7",
+};
+
+const Icon = ({ name, className = "h-5 w-5" }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d={paths[name]} />
+  </svg>
+);
+
+const Field = ({ label, children, className = "" }) => (
+  <label className={`block text-sm font-bold text-slate-700 dark:text-slate-200 ${className}`}>
+    {label}
+    {children}
+  </label>
+);
+
+const Section = ({ icon, title, subtitle, children }) => (
+  <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+    <div className="flex items-start gap-3 border-b border-slate-100 pb-4 dark:border-slate-800">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-200">
+        <Icon name={icon} className="h-5 w-5" />
+      </span>
+      <div>
+        <h2 className="text-lg font-black text-slate-950 dark:text-white">{title}</h2>
+        <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">{subtitle}</p>
+      </div>
+    </div>
+    <div className="mt-5">{children}</div>
+  </section>
+);
+
 const AddHospital = () => {
   const navigate = useNavigate();
-  const [form, setForm] = useState({
-    hospitalName: "",
-    hospitalCode: "",
-    hospitalType: "Government",
-    email: "",
-    phone: "",
-    alternatePhone: "",
-    website: "",
-    registrationNumber: "",
-    establishedYear: "",
-    stateId: "",
-    districtId: "",
-    cityId: "",
-    address: "",
-    pincode: "",
-    totalBeds: "",
-    availableBeds: "",
-    totalDoctors: "",
-    totalStaff: "",
-    emergencyAvailable: false,
-    ambulanceAvailable: false,
-    ICUAvailable: false,
-    bloodBankAvailable: false,
-    pharmacyAvailable: false,
-    description: "",
-  });
+  const [form, setForm] = useState(initialForm);
   const [logoFile, setLogoFile] = useState(null);
   const [hospitalImages, setHospitalImages] = useState([]);
   const [hospitalDocuments, setHospitalDocuments] = useState([createDocumentRow()]);
@@ -83,9 +132,7 @@ const AddHospital = () => {
     const fetchDistricts = async () => {
       try {
         setLoadingDistricts(true);
-        const response = await axiosInstance.get(
-          `/location/district/getDistrictByState/${form.stateId}`,
-        );
+        const response = await axiosInstance.get(`/location/district/getDistrictByState/${form.stateId}`);
         setDistricts(response.data.data || []);
       } catch (error) {
         console.log(error);
@@ -107,9 +154,7 @@ const AddHospital = () => {
     const fetchCities = async () => {
       try {
         setLoadingCities(true);
-        const response = await axiosInstance.get(
-          `/location/city/getCityByDistrict/${form.districtId}`,
-        );
+        const response = await axiosInstance.get(`/location/city/getCityByDistrict/${form.districtId}`);
         setCities(response.data.data || []);
       } catch (error) {
         console.log(error);
@@ -140,37 +185,42 @@ const AddHospital = () => {
   };
 
   const removeHospitalDocument = (id) => {
-    setHospitalDocuments((prev) => (prev.length > 1 ? prev.filter((document) => document.id !== id) : [createDocumentRow()]));
+    setHospitalDocuments((prev) =>
+      prev.length > 1 ? prev.filter((document) => document.id !== id) : [createDocumentRow()],
+    );
   };
 
-  const labelClass = "block text-sm font-semibold text-slate-700 dark:text-slate-200";
+  const requiredFields = [
+    "hospitalName",
+    "hospitalCode",
+    "hospitalType",
+    "email",
+    "phone",
+    "registrationNumber",
+    "stateId",
+    "districtId",
+    "cityId",
+    "address",
+    "pincode",
+  ];
+
+  const completedRequiredCount = useMemo(
+    () => requiredFields.filter((field) => Boolean(form[field])).length,
+    [form],
+  );
+  const completionPercent = Math.round((completedRequiredCount / requiredFields.length) * 100);
+  const enabledFacilities = facilities.filter((facility) => form[facility.name]).length;
+
   const inputClass =
-    "mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-blue-400";
-  const selectClass =
-    "mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-blue-400";
-  const disabledSelectClass =
-    `${selectClass} disabled:cursor-not-allowed disabled:bg-slate-100 dark:disabled:bg-slate-900 dark:disabled:text-slate-500`;
+    "mt-2 h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-teal-400 dark:focus:ring-teal-950";
+  const textareaClass =
+    "mt-2 w-full rounded-md border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-teal-400 dark:focus:ring-teal-950";
   const fileInputClass =
-    "mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none file:mr-3 file:rounded-xl file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-blue-700 focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:file:bg-slate-800 dark:file:text-blue-200 dark:focus:border-blue-400";
-  const panelClass = "rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-800";
+    "mt-2 h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none file:mr-3 file:rounded-md file:border-0 file:bg-teal-50 file:px-3 file:py-2 file:text-sm file:font-bold file:text-teal-700 focus:border-teal-600 focus:ring-4 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:file:bg-teal-950 dark:file:text-teal-200 dark:focus:ring-teal-950";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
-
-    const requiredFields = [
-      "hospitalName",
-      "hospitalCode",
-      "hospitalType",
-      "email",
-      "phone",
-      "registrationNumber",
-      "stateId",
-      "districtId",
-      "cityId",
-      "address",
-      "pincode",
-    ];
 
     const missing = requiredFields.filter((key) => !form[key]);
     if (missing.length) {
@@ -210,32 +260,7 @@ const AddHospital = () => {
       await axiosInstance.post("/hospital/addHospital", payload);
 
       setMessage("Hospital added successfully.");
-      setForm({
-        hospitalName: "",
-        hospitalCode: "",
-        hospitalType: "Government",
-        email: "",
-        phone: "",
-        alternatePhone: "",
-        website: "",
-        registrationNumber: "",
-        establishedYear: "",
-        stateId: "",
-        districtId: "",
-        cityId: "",
-        address: "",
-        pincode: "",
-        totalBeds: "",
-        availableBeds: "",
-        totalDoctors: "",
-        totalStaff: "",
-        emergencyAvailable: false,
-        ambulanceAvailable: false,
-        ICUAvailable: false,
-        bloodBankAvailable: false,
-        pharmacyAvailable: false,
-        description: "",
-      });
+      setForm(initialForm);
       setLogoFile(null);
       setHospitalImages([]);
       setHospitalDocuments([createDocumentRow()]);
@@ -247,378 +272,231 @@ const AddHospital = () => {
   };
 
   return (
-    <main className="min-h-screen bg-slate-100 text-left dark:bg-slate-900 dark:text-white">
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 xl:px-8">
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-700 dark:bg-slate-950">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <main className="min-h-[calc(100svh-73px)] bg-slate-50 text-left text-slate-950 dark:bg-slate-950 dark:text-white">
+      <header className="sticky top-[73px] z-20 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 xl:px-8">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-300">Add Hospital</p>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-950 dark:text-white">Create a new hospital record</h1>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                This page is public: anyone can add a hospital without logging in.
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-300">Hospital onboarding</p>
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-white">Register a hospital</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                Submit hospital identity, location, operating capacity, facilities, and verification files for review.
               </p>
             </div>
-            <div className="rounded-3xl bg-slate-50 p-4 text-sm text-slate-700 dark:bg-slate-900 dark:text-slate-300">
-              Use the form below to save hospital details and location references.
-            </div>
-          </div>
-
-          {message && (
-            <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
-              {message}
-            </div>
-          )}
-
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-            <div className="grid gap-6 lg:grid-cols-2">
-              <div className="space-y-4">
-                <label className={labelClass}>
-                  Hospital Name
-                  <input
-                    value={form.hospitalName}
-                    onChange={(e) => handleChange("hospitalName", e.target.value)}
-                    className={inputClass}
-                    placeholder="MediCare Hospital"
-                  />
-                </label>
-                <label className={labelClass}>
-                  Hospital Code
-                  <input
-                    value={form.hospitalCode}
-                    onChange={(e) => handleChange("hospitalCode", e.target.value)}
-                    className={inputClass}
-                    placeholder="HOSP123"
-                  />
-                </label>
-                <label className={labelClass}>
-                  Hospital Type
-                  <select
-                    value={form.hospitalType}
-                    onChange={(e) => handleChange("hospitalType", e.target.value)}
-                    className={selectClass}
-                  >
-                    {hospitalTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className={labelClass}>
-                  Registration Number
-                  <input
-                    value={form.registrationNumber}
-                    onChange={(e) => handleChange("registrationNumber", e.target.value)}
-                    className={inputClass}
-                    placeholder="REG-0001"
-                  />
-                </label>
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <label className={labelClass}>
-                    Email
-                    <input
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => handleChange("email", e.target.value)}
-                      className={inputClass}
-                      placeholder="admin@hospital.com"
-                    />
-                  </label>
-                  <label className={labelClass}>
-                    Phone
-                    <input
-                      value={form.phone}
-                      onChange={(e) => handleChange("phone", e.target.value)}
-                      className={inputClass}
-                      placeholder="9876543210"
-                    />
-                  </label>
-                </div>
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <label className={labelClass}>
-                    Alternate Phone
-                    <input
-                      value={form.alternatePhone}
-                      onChange={(e) => handleChange("alternatePhone", e.target.value)}
-                      className={inputClass}
-                      placeholder="Optional"
-                    />
-                  </label>
-                  <label className={labelClass}>
-                    Website
-                    <input
-                      value={form.website}
-                      onChange={(e) => handleChange("website", e.target.value)}
-                      className={inputClass}
-                      placeholder="https://example.com"
-                    />
-                  </label>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <label className={labelClass}>
-                  State
-                  <select
-                    value={form.stateId}
-                    onChange={(e) => handleChange("stateId", e.target.value)}
-                    className={selectClass}
-                  >
-                    <option value="" disabled>
-                      {loadingStates ? "Loading states..." : states.length ? "Select state" : "No states available"}
-                    </option>
-                    {states.map((item) => (
-                      <option key={item._id} value={item._id}>
-                        {item.stateName}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className={labelClass}>
-                  District
-                  <select
-                    value={form.districtId}
-                    onChange={(e) => handleChange("districtId", e.target.value)}
-                    disabled={!form.stateId || loadingDistricts}
-                    className={disabledSelectClass}
-                  >
-                    <option value="" disabled>
-                      {loadingDistricts
-                        ? "Loading districts..."
-                        : !form.stateId
-                        ? "Select a state first"
-                        : districts.length
-                        ? "Select district"
-                        : "No districts available"}
-                    </option>
-                    {districts.map((item) => (
-                      <option key={item._id} value={item._id}>
-                        {item.districtName}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className={labelClass}>
-                  City
-                  <select
-                    value={form.cityId}
-                    onChange={(e) => handleChange("cityId", e.target.value)}
-                    disabled={!form.districtId || loadingCities}
-                    className={disabledSelectClass}
-                  >
-                    <option value="" disabled>
-                      {loadingCities
-                        ? "Loading cities..."
-                        : !form.districtId
-                        ? "Select a district first"
-                        : cities.length
-                        ? "Select city"
-                        : "No cities available"}
-                    </option>
-                    {cities.map((item) => (
-                      <option key={item._id} value={item._id}>
-                        {item.cityName}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className={labelClass}>
-                  Address
-                  <textarea
-                    value={form.address}
-                    onChange={(e) => handleChange("address", e.target.value)}
-                    className={inputClass}
-                    rows={4}
-                    placeholder="Hospital street address"
-                  />
-                </label>
-                <label className={labelClass}>
-                  Pincode
-                  <input
-                    value={form.pincode}
-                    onChange={(e) => handleChange("pincode", e.target.value)}
-                    className={inputClass}
-                    placeholder="123456"
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="grid gap-6 lg:grid-cols-2">
-              <div className={panelClass}>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">Hospital capacity</p>
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <label className={labelClass}>
-                    Total beds
-                    <input
-                      value={form.totalBeds}
-                      onChange={(e) => handleChange("totalBeds", e.target.value)}
-                      className={inputClass}
-                      placeholder="0"
-                    />
-                  </label>
-                  <label className={labelClass}>
-                    Available beds
-                    <input
-                      value={form.availableBeds}
-                      onChange={(e) => handleChange("availableBeds", e.target.value)}
-                      className={inputClass}
-                      placeholder="0"
-                    />
-                  </label>
-                  <label className={labelClass}>
-                    Total doctors
-                    <input
-                      value={form.totalDoctors}
-                      onChange={(e) => handleChange("totalDoctors", e.target.value)}
-                      className={inputClass}
-                      placeholder="0"
-                    />
-                  </label>
-                  <label className={labelClass}>
-                    Total staff
-                    <input
-                      value={form.totalStaff}
-                      onChange={(e) => handleChange("totalStaff", e.target.value)}
-                      className={inputClass}
-                      placeholder="0"
-                    />
-                  </label>
-                </div>
-              </div>
-
-              <div className={panelClass}>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">Facilities</p>
-                <div className="mt-4 grid gap-3">
-                  {[
-                    { label: "Emergency", name: "emergencyAvailable" },
-                    { label: "Ambulance", name: "ambulanceAvailable" },
-                    { label: "ICU", name: "ICUAvailable" },
-                    { label: "Blood bank", name: "bloodBankAvailable" },
-                    { label: "Pharmacy", name: "pharmacyAvailable" },
-                  ].map((item) => (
-                    <label key={item.name} className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
-                      <input
-                        type="checkbox"
-                        checked={form[item.name]}
-                        onChange={(e) => handleChange(item.name, e.target.checked)}
-                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      {item.label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className={`space-y-4 ${panelClass}`}>
-              <label className={labelClass}>
-                Established year
-                <input
-                  type="number"
-                  value={form.establishedYear}
-                  onChange={(e) => handleChange("establishedYear", e.target.value)}
-                  className={inputClass}
-                  placeholder="2000"
-                />
-              </label>
-              <div className="grid gap-4 lg:grid-cols-3">
-                <label className={labelClass}>
-                  Logo
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
-                    className={fileInputClass}
-                  />
-                  {logoFile && <span className="mt-2 block truncate text-xs text-slate-500 dark:text-slate-400">{logoFile.name}</span>}
-                </label>
-                <label className={labelClass}>
-                  Hospital images
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleFiles(setHospitalImages)}
-                    className={fileInputClass}
-                  />
-                  {hospitalImages.length > 0 && <span className="mt-2 block text-xs text-slate-500 dark:text-slate-400">{hospitalImages.length} image(s) selected</span>}
-                </label>
-                <div className="lg:col-span-3">
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Documents</p>
-                  <div className="mt-2 space-y-3">
-                    {hospitalDocuments.map((document, index) => (
-                      <div key={document.id} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-950 sm:grid-cols-[1fr_1.5fr_auto_auto] sm:items-center">
-                        <input
-                          value={document.name}
-                          onChange={(e) => updateHospitalDocument(document.id, "name", e.target.value)}
-                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-blue-400"
-                          placeholder="Document name"
-                        />
-                        <input
-                          type="file"
-                          onChange={(e) => updateHospitalDocument(document.id, "file", e.target.files?.[0] || null)}
-                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none file:mr-3 file:rounded-xl file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-blue-700 focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:file:bg-slate-800 dark:file:text-blue-200 dark:focus:border-blue-400"
-                        />
-                        <button
-                          type="button"
-                          onClick={addHospitalDocument}
-                          className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-600 bg-blue-600 text-xl font-bold leading-none text-white transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100 dark:border-blue-400 dark:bg-blue-500 dark:text-slate-950 dark:hover:bg-blue-400 dark:focus:ring-blue-950"
-                          aria-label="Add document row"
-                          title="Add document row"
-                        >
-                          +
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => removeHospitalDocument(document.id)}
-                          disabled={hospitalDocuments.length === 1 && index === 0 && !document.name && !document.file}
-                          className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-rose-500 bg-white text-xl font-bold leading-none text-rose-600 transition hover:bg-rose-50 focus:outline-none focus:ring-4 focus:ring-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300 disabled:hover:bg-white dark:border-rose-400 dark:bg-slate-950 dark:text-rose-300 dark:hover:bg-rose-950/40 dark:focus:ring-rose-950 dark:disabled:border-slate-700 dark:disabled:text-slate-600 dark:disabled:hover:bg-slate-950"
-                          aria-label="Remove document row"
-                          title="Remove document row"
-                        >
-                          -
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <label className={labelClass}>
-                Description
-                <textarea
-                  value={form.description}
-                  onChange={(e) => handleChange("description", e.target.value)}
-                  className={inputClass}
-                  rows={4}
-                  placeholder="Brief hospital profile"
-                />
-              </label>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="submit"
-                disabled={loading}
-                className="rounded-3xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-blue-500 dark:text-slate-950 dark:hover:bg-blue-400 dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
-              >
-                {loading ? "Saving..." : "Save hospital"}
-              </button>
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className="rounded-3xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-900"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
               >
-                Cancel
+                <Icon name="arrow" className="h-4 w-4" />
+                Back
+              </button>
+              <button
+                type="submit"
+                form="hospital-registration-form"
+                disabled={loading}
+                className="h-11 rounded-md bg-teal-700 px-5 text-sm font-black text-white shadow-lg shadow-teal-900/15 transition hover:bg-teal-800 disabled:bg-teal-400 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
+              >
+                {loading ? "Submitting..." : "Submit hospital"}
               </button>
             </div>
-            {message && (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
-                {message}
-              </div>
-            )}
-          </form>
+          </div>
+          {message && (
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+              {message}
+            </div>
+          )}
         </div>
+      </header>
+
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 xl:grid-cols-[1fr_320px] xl:px-8">
+        <form id="hospital-registration-form" onSubmit={handleSubmit} className="space-y-6">
+          <Section icon="hospital" title="Hospital identity" subtitle="Core details used for approval, login creation, and public listing.">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Hospital name">
+                <input value={form.hospitalName} onChange={(e) => handleChange("hospitalName", e.target.value)} className={inputClass} placeholder="MediCare Hospital" />
+              </Field>
+              <Field label="Hospital code">
+                <input value={form.hospitalCode} onChange={(e) => handleChange("hospitalCode", e.target.value)} className={inputClass} placeholder="HOSP123" />
+              </Field>
+              <Field label="Hospital type">
+                <select value={form.hospitalType} onChange={(e) => handleChange("hospitalType", e.target.value)} className={inputClass}>
+                  {hospitalTypes.map((type) => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Registration number">
+                <input value={form.registrationNumber} onChange={(e) => handleChange("registrationNumber", e.target.value)} className={inputClass} placeholder="REG-0001" />
+              </Field>
+              <Field label="Email">
+                <input type="email" value={form.email} onChange={(e) => handleChange("email", e.target.value)} className={inputClass} placeholder="admin@hospital.com" />
+              </Field>
+              <Field label="Phone">
+                <input value={form.phone} onChange={(e) => handleChange("phone", e.target.value)} className={inputClass} placeholder="9876543210" />
+              </Field>
+              <Field label="Alternate phone">
+                <input value={form.alternatePhone} onChange={(e) => handleChange("alternatePhone", e.target.value)} className={inputClass} placeholder="Optional" />
+              </Field>
+              <Field label="Website">
+                <input value={form.website} onChange={(e) => handleChange("website", e.target.value)} className={inputClass} placeholder="https://example.com" />
+              </Field>
+            </div>
+          </Section>
+
+          <Section icon="location" title="Location" subtitle="Address hierarchy is used by patients when searching and booking appointments.">
+            <div className="grid gap-4 md:grid-cols-3">
+              <Field label="State">
+                <select value={form.stateId} onChange={(e) => handleChange("stateId", e.target.value)} className={inputClass}>
+                  <option value="" disabled>{loadingStates ? "Loading states..." : states.length ? "Select state" : "No states available"}</option>
+                  {states.map((item) => (
+                    <option key={item._id} value={item._id}>{item.stateName}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="District">
+                <select value={form.districtId} onChange={(e) => handleChange("districtId", e.target.value)} disabled={!form.stateId || loadingDistricts} className={`${inputClass} disabled:cursor-not-allowed disabled:bg-slate-100 dark:disabled:bg-slate-900 dark:disabled:text-slate-500`}>
+                  <option value="" disabled>
+                    {loadingDistricts ? "Loading districts..." : !form.stateId ? "Select state first" : districts.length ? "Select district" : "No districts available"}
+                  </option>
+                  {districts.map((item) => (
+                    <option key={item._id} value={item._id}>{item.districtName}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="City">
+                <select value={form.cityId} onChange={(e) => handleChange("cityId", e.target.value)} disabled={!form.districtId || loadingCities} className={`${inputClass} disabled:cursor-not-allowed disabled:bg-slate-100 dark:disabled:bg-slate-900 dark:disabled:text-slate-500`}>
+                  <option value="" disabled>
+                    {loadingCities ? "Loading cities..." : !form.districtId ? "Select district first" : cities.length ? "Select city" : "No cities available"}
+                  </option>
+                  {cities.map((item) => (
+                    <option key={item._id} value={item._id}>{item.cityName}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Address" className="md:col-span-2">
+                <textarea value={form.address} onChange={(e) => handleChange("address", e.target.value)} className={textareaClass} rows={4} placeholder="Hospital street address" />
+              </Field>
+              <Field label="Pincode">
+                <input value={form.pincode} onChange={(e) => handleChange("pincode", e.target.value)} className={inputClass} placeholder="123456" />
+              </Field>
+            </div>
+          </Section>
+
+          <Section icon="activity" title="Capacity and facilities" subtitle="Operational information helps admins validate readiness and users understand available services.">
+            <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Total beds">
+                  <input value={form.totalBeds} onChange={(e) => handleChange("totalBeds", e.target.value)} className={inputClass} placeholder="0" />
+                </Field>
+                <Field label="Available beds">
+                  <input value={form.availableBeds} onChange={(e) => handleChange("availableBeds", e.target.value)} className={inputClass} placeholder="0" />
+                </Field>
+                <Field label="Total doctors">
+                  <input value={form.totalDoctors} onChange={(e) => handleChange("totalDoctors", e.target.value)} className={inputClass} placeholder="0" />
+                </Field>
+                <Field label="Total staff">
+                  <input value={form.totalStaff} onChange={(e) => handleChange("totalStaff", e.target.value)} className={inputClass} placeholder="0" />
+                </Field>
+              </div>
+
+              <div className="grid gap-3">
+                {facilities.map((item) => (
+                  <button
+                    key={item.name}
+                    type="button"
+                    onClick={() => handleChange(item.name, !form[item.name])}
+                    className={`flex h-11 items-center justify-between rounded-md border px-3 text-sm font-bold transition ${
+                      form[item.name]
+                        ? "border-teal-700 bg-teal-50 text-teal-800 dark:border-teal-500 dark:bg-teal-950 dark:text-teal-100"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"
+                    }`}
+                  >
+                    {item.label}
+                    {form[item.name] && <Icon name="check" className="h-4 w-4" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </Section>
+
+          <Section icon="file" title="Media and verification" subtitle="Add profile images and supporting documents for admin review.">
+            <div className="grid gap-4 lg:grid-cols-3">
+              <Field label="Established year">
+                <input type="number" value={form.establishedYear} onChange={(e) => handleChange("establishedYear", e.target.value)} className={inputClass} placeholder="2000" />
+              </Field>
+              <Field label="Logo">
+                <input type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} className={fileInputClass} />
+                {logoFile && <span className="mt-2 block truncate text-xs text-slate-500 dark:text-slate-400">{logoFile.name}</span>}
+              </Field>
+              <Field label="Hospital images">
+                <input type="file" accept="image/*" multiple onChange={handleFiles(setHospitalImages)} className={fileInputClass} />
+                {hospitalImages.length > 0 && <span className="mt-2 block text-xs text-slate-500 dark:text-slate-400">{hospitalImages.length} image(s) selected</span>}
+              </Field>
+              <div className="lg:col-span-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-black text-slate-900 dark:text-white">Documents</p>
+                  <button type="button" onClick={addHospitalDocument} className="inline-flex h-9 items-center gap-2 rounded-md bg-teal-700 px-3 text-sm font-bold text-white hover:bg-teal-800 dark:bg-teal-500 dark:text-slate-950">
+                    <Icon name="plus" className="h-4 w-4" />
+                    Add document
+                  </button>
+                </div>
+                <div className="mt-3 space-y-3">
+                  {hospitalDocuments.map((document, index) => (
+                    <div key={document.id} className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-[1fr_1.4fr_auto] sm:items-center">
+                      <input value={document.name} onChange={(e) => updateHospitalDocument(document.id, "name", e.target.value)} className="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none focus:border-teal-600 dark:border-slate-700 dark:bg-slate-950 dark:text-white" placeholder="Document name" />
+                      <input type="file" onChange={(e) => updateHospitalDocument(document.id, "file", e.target.files?.[0] || null)} className={fileInputClass} />
+                      <button
+                        type="button"
+                        onClick={() => removeHospitalDocument(document.id)}
+                        disabled={hospitalDocuments.length === 1 && index === 0 && !document.name && !document.file}
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-rose-200 bg-white text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300 dark:border-rose-900 dark:bg-slate-950 dark:text-rose-300 dark:hover:bg-rose-950/40"
+                        aria-label="Remove document row"
+                        title="Remove document row"
+                      >
+                        <Icon name="close" className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Field label="Description" className="lg:col-span-3">
+                <textarea value={form.description} onChange={(e) => handleChange("description", e.target.value)} className={textareaClass} rows={4} placeholder="Brief hospital profile" />
+              </Field>
+            </div>
+          </Section>
+        </form>
+
+        <aside className="space-y-4 xl:sticky xl:top-48 xl:self-start">
+          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Readiness</p>
+            <div className="mt-4">
+              <div className="flex items-end justify-between">
+                <p className="text-3xl font-black text-slate-950 dark:text-white">{completionPercent}%</p>
+                <p className="text-sm font-bold text-slate-500 dark:text-slate-400">{completedRequiredCount}/{requiredFields.length} required</p>
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                <div className="h-full rounded-full bg-teal-600 transition-all" style={{ width: `${completionPercent}%` }} />
+              </div>
+            </div>
+            <div className="mt-5 grid gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300">
+              <p>{enabledFacilities} facility option(s) enabled</p>
+              <p>{hospitalImages.length} gallery image(s) selected</p>
+              <p>{hospitalDocuments.filter((document) => document.name || document.file).length} document row(s) started</p>
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-slate-200 bg-white p-5 text-sm leading-6 text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
+            <h2 className="font-black text-slate-950 dark:text-white">Submission checklist</h2>
+            <ul className="mt-3 space-y-2">
+              <li>Use a unique hospital code and active email.</li>
+              <li>Select state, district, and city before submitting.</li>
+              <li>Upload matching document names with files.</li>
+              <li>Review capacity numbers before approval.</li>
+            </ul>
+          </section>
+        </aside>
       </div>
     </main>
   );

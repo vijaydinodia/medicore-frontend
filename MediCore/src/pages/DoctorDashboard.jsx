@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axiosInstance from "../api";
 import SearchInput from "../components/SearchInput";
-import { getAuthInfo } from "../custom_hook/useAuth";
+import { getAuthInfo } from "../custom_hook/UseAuth";
 
 const emptyMedicine = {
   medicineName: "",

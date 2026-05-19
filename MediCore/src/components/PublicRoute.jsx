@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { getAuthInfo } from "../custom_hook/useAuth";
+import { getAuthInfo } from "../custom_hook/UseAuth";
 
 const PublicRoute = ({ children }) => {
   const auth = getAuthInfo();

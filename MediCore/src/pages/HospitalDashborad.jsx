@@ -5,7 +5,7 @@ import AddDepartment from "../components/AddDepartment";
 import AddDoctor from "../components/AddDoctor";
 import AddSubDepartment from "../components/AddSubDepartment";
 import SearchInput from "../components/SearchInput";
-import { useAuth } from "../custom_hook/useAuth";
+import { UseAuth } from "../custom_hook/UseAuth";
 
 const paths = {
   department: "M4 5h16M4 12h16M4 19h16",
@@ -95,7 +95,7 @@ const reportTabs = [
 const HospitalDashborad = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser } = UseAuth();
   const hospitalId = getRecordId(currentUser?.hospitalId);
   const [activeForm, setActiveForm] = useState("");
   const [statsDate, setStatsDate] = useState(getToday());
@@ -183,6 +183,11 @@ const HospitalDashborad = () => {
   const canAddNestedRecords = filteredDepartments.length > 0;
   const tabFromUrl = new URLSearchParams(location.search).get("tab");
   const activeReportTab = reportTabs.some((tab) => tab.id === tabFromUrl) ? tabFromUrl : "overview";
+  const workspaceNavItems = [
+    { id: "overview", label: "Overview", icon: "hospital" },
+    { id: "today-patients", label: "Today Patients", icon: "activity" },
+    { id: "doctor-attendance", label: "Doctor Attendance", icon: "doctor" },
+  ];
   const openReportTab = (tabId) => {
     navigate(`/hospital/dashboard?tab=${tabId}`);
   };
@@ -240,85 +245,137 @@ const HospitalDashborad = () => {
   };
 
   return (
-    <main className="min-h-[calc(100svh-73px)] bg-slate-50 px-4 py-8 text-left dark:bg-slate-950 sm:px-6">
-      <div className="mx-auto max-w-7xl">
-        <header className="flex flex-col gap-5 border-b border-slate-200 pb-6 dark:border-slate-800 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-300">Hospital workspace</p>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950 dark:text-white">Hospital Dashboard</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-              Manage departments, subdepartments, doctors, and daily hospital setup from one focused workspace.
-            </p>
+    <main className="min-h-[calc(100svh-73px)] bg-slate-50 text-left dark:bg-slate-950">
+      <aside className="fixed bottom-0 left-0 top-[73px] z-20 hidden w-72 border-r border-slate-200 bg-white px-5 py-6 shadow-sm dark:border-slate-800 dark:bg-slate-950 lg:flex lg:flex-col">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-teal-700 text-white dark:bg-teal-500 dark:text-slate-950">
+            <Icon name="hospital" />
           </div>
+          <div className="min-w-0">
+            <p className="truncate text-lg font-black tracking-tight">{hospital.hospitalName}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Hospital Admin</p>
+          </div>
+        </div>
 
-          <div className="flex flex-wrap gap-2">
-            <ActionButton icon="department" onClick={() => setActiveForm("department")}>Add department</ActionButton>
-            <ActionButton
-              icon="subDepartment"
-              onClick={() => setActiveForm("subDepartment")}
-              variant="neutral"
-              disabled={!canAddNestedRecords}
-              title={!canAddNestedRecords ? "Add a department first" : "Add subdepartment"}
+        <nav className="mt-8 space-y-2">
+          {workspaceNavItems.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => openReportTab(item.id)}
+              className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-bold transition ${
+                activeReportTab === item.id
+                  ? "bg-teal-700 text-white shadow-lg shadow-teal-900/10 dark:bg-teal-500 dark:text-slate-950"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
+              }`}
             >
-              Add subdepartment
-            </ActionButton>
-            <ActionButton
-              icon="doctor"
-              onClick={() => setActiveForm("doctor")}
-              variant="neutral"
-              disabled={!canAddNestedRecords}
-              title={!canAddNestedRecords ? "Add a department first" : "Add doctor"}
-            >
-              Add doctor
-            </ActionButton>
-            <button type="button" onClick={loadDashboard} aria-label="Refresh dashboard" title="Refresh dashboard" className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-              <Icon name="refresh" className="h-4 w-4" />
+              <Icon name={item.icon} className="h-5 w-5" />
+              <span>{item.label}</span>
             </button>
-          </div>
-        </header>
+          ))}
+        </nav>
 
-        <section className="mt-6">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <SearchInput
-              value={searchTerm}
-              onChange={setSearchTerm}
-              placeholder="Search departments, subdepartments, or doctors"
-              className="max-w-xl"
-            />
-            <label className="w-full max-w-xs">
-              <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Patient stats date</span>
+        <div className="mt-auto rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Live counts</p>
+          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-md bg-white p-2 dark:bg-slate-950">
+              <p className="text-lg font-black">{filteredDepartments.length}</p>
+              <p className="text-xs text-slate-500">Dept</p>
+            </div>
+            <div className="rounded-md bg-white p-2 dark:bg-slate-950">
+              <p className="text-lg font-black">{filteredSubDepartments.length}</p>
+              <p className="text-xs text-slate-500">Units</p>
+            </div>
+            <div className="rounded-md bg-white p-2 dark:bg-slate-950">
+              <p className="text-lg font-black">{filteredDoctors.length}</p>
+              <p className="text-xs text-slate-500">Doctors</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <section className="lg:pl-72">
+        <header className="sticky top-[73px] z-20 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
+          <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 xl:px-8">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-300">Hospital workspace</p>
+                <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-white">Hospital Dashboard</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                  Manage departments, subdepartments, doctors, and daily hospital setup from one focused workspace.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <ActionButton icon="department" onClick={() => setActiveForm("department")}>Add department</ActionButton>
+                <ActionButton icon="subDepartment" onClick={() => setActiveForm("subDepartment")} variant="neutral" disabled={!canAddNestedRecords} title={!canAddNestedRecords ? "Add a department first" : "Add subdepartment"}>
+                  Add subdepartment
+                </ActionButton>
+                <ActionButton icon="doctor" onClick={() => setActiveForm("doctor")} variant="neutral" disabled={!canAddNestedRecords} title={!canAddNestedRecords ? "Add a department first" : "Add doctor"}>
+                  Add doctor
+                </ActionButton>
+                <button type="button" onClick={loadDashboard} aria-label="Refresh dashboard" title="Refresh dashboard" className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                  <Icon name="refresh" className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="grid gap-3 xl:grid-cols-[auto_1fr_auto_auto] xl:items-end">
+              <div className="flex gap-2 overflow-x-auto">
+                {workspaceNavItems.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => openReportTab(tab.id)}
+                    className={`inline-flex h-11 items-center gap-2 rounded-md px-4 text-sm font-black transition ${
+                      activeReportTab === tab.id
+                        ? "bg-teal-700 text-white shadow-sm dark:bg-teal-400 dark:text-slate-950"
+                        : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <Icon name={tab.icon} className="h-4 w-4" />
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              <SearchInput
+                value={activeReportTab === "overview" ? searchTerm : patientSearchTerm}
+                onChange={activeReportTab === "overview" ? setSearchTerm : setPatientSearchTerm}
+                placeholder={activeReportTab === "overview" ? "Search departments, subdepartments, doctors" : "Search patients or doctors"}
+                className="w-full"
+              />
+              {activeReportTab !== "overview" && (
+                <select
+                  value={patientStatusFilter}
+                  onChange={(event) => setPatientStatusFilter(event.target.value)}
+                  className="h-11 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                >
+                  <option value="all">All status</option>
+                  <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="reached">Reached</option>
+                </select>
+              )}
               <input
                 type="date"
                 value={statsDate}
                 onChange={(event) => setStatsDate(event.target.value)}
-                className="mt-2 h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-teal-950"
+                className="h-11 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-teal-950"
+                aria-label="Patient stats date"
               />
-            </label>
+            </div>
           </div>
-        </section>
+        </header>
+
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 xl:px-8">
 
         {message && (
           <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
             {message}
           </div>
         )}
-
-        <section className="mt-6 flex flex-wrap gap-2">
-          {reportTabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => openReportTab(tab.id)}
-              className={`h-11 rounded-md px-4 text-sm font-black transition ${
-                activeReportTab === tab.id
-                  ? "bg-teal-700 text-white shadow-sm dark:bg-teal-400 dark:text-slate-950"
-                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </section>
 
         {activeReportTab === "overview" && (
           <>
@@ -422,23 +479,7 @@ const HospitalDashborad = () => {
               <StatCard label="Doctors attended" value={patientStats.doctorsAttended || 0} icon="doctor" />
             </section>
 
-            <section className="mt-6 grid gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950 lg:grid-cols-[1fr_auto_auto] lg:items-end">
-              <SearchInput value={patientSearchTerm} onChange={setPatientSearchTerm} placeholder="Search patients or doctors" />
-              <label className="block">
-                <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Filter</span>
-                <select
-                  value={patientStatusFilter}
-                  onChange={(event) => setPatientStatusFilter(event.target.value)}
-                  className="mt-2 h-11 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                >
-                  <option value="all">All</option>
-                  <option value="pending">Pending</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                  <option value="reached">Reached</option>
-                </select>
-              </label>
+            <section className="mt-6 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
               <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={() => changePatientSort("timeSlot")} className="h-11 rounded-md border border-slate-200 px-3 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200">Time</button>
                 <button type="button" onClick={() => changePatientSort("patient")} className="h-11 rounded-md border border-slate-200 px-3 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200">Patient</button>
@@ -500,7 +541,8 @@ const HospitalDashborad = () => {
             </section>
           </>
         )}
-      </div>
+        </div>
+      </section>
 
       {activeForm === "department" && (
         <Modal title="Add department" subtitle="Create a primary clinical or operational department." onClose={closeForm}>

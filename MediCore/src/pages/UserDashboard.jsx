@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../api";
 import SearchInput from "../components/SearchInput";
-import { getAuthInfo } from "../custom_hook/useAuth";
+import { getAuthInfo } from "../custom_hook/UseAuth";
 
 const AppointmentModal = lazy(() => import("../components/AppointmentModal"));
 const HospitalDetails = lazy(() => import("../components/HospitalDetails"));
@@ -311,13 +311,13 @@ const UserDashboard = () => {
           </div>
         </section>
 
-        <nav className="sticky top-[73px] z-20 mt-6 border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <nav className="sticky top-[73px] z-20 mt-6 rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
             <SearchInput
               value={searchText}
               onChange={setSearchText}
               placeholder={`Search ${activeTab === "hospital" ? "hospitals" : activeTab === "doctor" ? "doctors" : "appointments"}`}
-              className="flex-1"
+              className="w-full"
             />
             <div className="grid grid-cols-3 gap-2 sm:flex">
               <button type="button" onClick={showHospitals} className={tabButtonClass("hospital")}>
@@ -331,6 +331,31 @@ const UserDashboard = () => {
               </button>
             </div>
           </div>
+          {activeTab === "history" && (
+            <div className="mt-3 grid gap-3 border-t border-slate-200 pt-3 dark:border-slate-800 sm:grid-cols-2">
+              <select
+                value={historyStatusFilter}
+                onChange={(event) => setHistoryStatusFilter(event.target.value)}
+                className="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                aria-label="Status filter"
+              >
+                <option value="all">All appointments</option>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              <select
+                value={historySortDirection}
+                onChange={(event) => setHistorySortDirection(event.target.value)}
+                className="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                aria-label="Sort appointments by date"
+              >
+                <option value="desc">Newest first</option>
+                <option value="asc">Oldest first</option>
+              </select>
+            </div>
+          )}
         </nav>
 
         {message && (
@@ -436,33 +461,6 @@ const UserDashboard = () => {
 
         {!loading && activeTab === "history" && (
           <section className="mt-6 space-y-4">
-            <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-2">
-              <label className="block">
-                <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Status filter</span>
-                <select
-                  value={historyStatusFilter}
-                  onChange={(event) => setHistoryStatusFilter(event.target.value)}
-                  className="mt-2 h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                >
-                  <option value="all">All</option>
-                  <option value="pending">Pending</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Sort by date</span>
-                <select
-                  value={historySortDirection}
-                  onChange={(event) => setHistorySortDirection(event.target.value)}
-                  className="mt-2 h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                >
-                  <option value="desc">Newest first</option>
-                  <option value="asc">Oldest first</option>
-                </select>
-              </label>
-            </div>
             {visibleAppointments.map((appointment) => (
               <article key={appointment._id} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

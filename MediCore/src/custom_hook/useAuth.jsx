@@ -44,7 +44,7 @@ export const getAuthInfo = () => {
   };
 };
 
-export const useAuth = () => {
+export const UseAuth = () => {
   const [auth, setAuth] = useState(getAuthInfo());
 
   const refreshAuth = () => {

@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { getAuthInfo } from "../custom_hook/useAuth";
+import { getAuthInfo } from "../custom_hook/UseAuth";
 
 const ProtectedRoute = ({ children, roles = [] }) => {
   const location = useLocation();
