@@ -28,6 +28,13 @@ const getDoctorPhoto = (doctor) => {
   return doctor.profileImage || doctor.doctorImage?.profileImage || doctor.doctorImage?.url || "";
 };
 
+const getTestPhoto = (test) => {
+  if (test.labId?.logo) return test.labId.logo;
+  if (test.hospitalId?.logo) return test.hospitalId.logo;
+  const firstImage = (test.hospitalId?.images || []).find((item) => item?.url);
+  return firstImage?.url || "";
+};
+
 const formatDate = (dateValue) => {
   if (!dateValue) return "-";
   return new Date(dateValue).toLocaleDateString("en-IN", {
@@ -66,6 +73,7 @@ const UserDashboard = () => {
   const [doctors, setDoctors] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [appointments, setAppointments] = useState([]);
+  const [tests, setTests] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -94,6 +102,13 @@ const UserDashboard = () => {
       setHospitals(hospitalResult.data.data || []);
       setDoctors(doctorResult.data.data || []);
       setDepartments(departmentResult.data.data || []);
+
+      if (isAuthenticated) {
+        const testResult = await axiosInstance.get("/test/getAllTests");
+        setTests(testResult.data.data || []);
+      } else {
+        setTests([]);
+      }
 
       if (canUsePatientActions) {
         const appointmentResult = await axiosInstance.get("/appointment/myAppointments");
@@ -206,8 +221,28 @@ const UserDashboard = () => {
     return (aDate - bDate) * (historySortDirection === "asc" ? 1 : -1);
   });
 
+  const visibleTests = tests.filter((test) => {
+    const activeTest = !test.isDeleted && test.status !== "inactive";
+    const activeHospital = activeHospitalIds.includes(getId(test.hospitalId));
+
+    if (!activeTest || !activeHospital) return false;
+    if (!text) return true;
+
+    const values = [
+      test.testName,
+      test.hospitalId?.hospitalName,
+      test.labId?.labName,
+      test.labId?.address,
+      test.hospitalId?.address,
+      test.amount,
+    ];
+
+    return values.some((value) => String(value || "").toLowerCase().includes(text));
+  });
+
   let resultCount = visibleHospitals.length;
   if (activeTab === "doctor") resultCount = visibleDoctors.length;
+  if (activeTab === "test") resultCount = visibleTests.length;
   if (activeTab === "history") resultCount = visibleAppointments.length;
 
   const openHospitalDoctors = (hospitalId) => {
@@ -224,6 +259,17 @@ const UserDashboard = () => {
 
   const showDoctors = () => {
     setActiveTab("doctor");
+    setSelectedHospitalId("");
+    setSelectedDepartmentId("all");
+  };
+
+  const showTests = () => {
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: "/user/dashboard" } });
+      return;
+    }
+
+    setActiveTab("test");
     setSelectedHospitalId("");
     setSelectedDepartmentId("all");
   };
@@ -316,15 +362,18 @@ const UserDashboard = () => {
             <SearchInput
               value={searchText}
               onChange={setSearchText}
-              placeholder={`Search ${activeTab === "hospital" ? "hospitals" : activeTab === "doctor" ? "doctors" : "appointments"}`}
+              placeholder={`Search ${activeTab === "hospital" ? "hospitals" : activeTab === "doctor" ? "doctors" : activeTab === "test" ? "tests" : "appointments"}`}
               className="w-full"
             />
-            <div className="grid grid-cols-3 gap-2 sm:flex">
+            <div className="grid grid-cols-2 gap-2 sm:flex">
               <button type="button" onClick={showHospitals} className={tabButtonClass("hospital")}>
                 By Hospital
               </button>
               <button type="button" onClick={showDoctors} className={tabButtonClass("doctor")}>
                 By Doctor
+              </button>
+              <button type="button" onClick={showTests} className={tabButtonClass("test")}>
+                Test
               </button>
               <button type="button" onClick={showHistory} className={tabButtonClass("history")}>
                 History
@@ -529,6 +578,20 @@ const UserDashboard = () => {
           </section>
         )}
 
+        {!loading && activeTab === "test" && (
+          <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {visibleTests.map((test) => (
+              <TestCard key={test._id} test={test} />
+            ))}
+
+            {visibleTests.length === 0 && (
+              <div className="rounded-lg border border-dashed border-slate-300 p-8 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400 md:col-span-2 xl:col-span-3">
+                {searchText ? "No tests match your search." : "No tests available yet."}
+              </div>
+            )}
+          </section>
+        )}
+
         {!loading && activeTab === "doctor" && (
           <>
             {selectedHospital && (
@@ -711,6 +774,52 @@ const DoctorCard = ({ doctor, onBook }) => {
       >
         Book Appointment
       </button>
+    </article>
+  );
+};
+
+const TestCard = ({ test }) => {
+  const image = getTestPhoto(test);
+  const address = test.labId?.address || test.hospitalId?.address || "Address not available";
+
+  return (
+    <article className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="aspect-[16/9] bg-slate-100 dark:bg-slate-800">
+        {image ? (
+          <img src={image} alt={test.testName || "Test"} className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-teal-700 text-4xl font-black text-white dark:bg-teal-500 dark:text-slate-950">
+            {(test.testName || "T").slice(0, 2).toUpperCase()}
+          </div>
+        )}
+      </div>
+
+      <div className="p-5">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300">
+          Lab Test
+        </p>
+        <h2 className="mt-2 line-clamp-2 text-xl font-black text-slate-950 dark:text-white">
+          {test.testName || "Test name not available"}
+        </h2>
+
+        <div className="mt-5 space-y-3 text-sm text-slate-600 dark:text-slate-300">
+          <p>
+            <span className="font-bold text-slate-900 dark:text-white">Hospital:</span>{" "}
+            {test.hospitalId?.hospitalName || "Hospital not available"}
+          </p>
+          <p>
+            <span className="font-bold text-slate-900 dark:text-white">Lab:</span>{" "}
+            {test.labId?.labName || "Lab not available"}
+          </p>
+          <p>
+            <span className="font-bold text-slate-900 dark:text-white">Test fees:</span>{" "}
+            {money.format(test.amount || 0)}
+          </p>
+          <p>
+            <span className="font-bold text-slate-900 dark:text-white">Address:</span> {address}
+          </p>
+        </div>
+      </div>
     </article>
   );
 };

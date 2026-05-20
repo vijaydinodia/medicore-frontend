@@ -1,21 +1,21 @@
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Header from "./components/Header";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
-
-const SignUp = lazy(() => import("./components/SignUp"));
-const Login = lazy(() => import("./components/Login"));
-const ForgetPassword = lazy(() => import("./components/ForgetPassword"));
-const ResetPassword = lazy(() => import("./components/ResetPassword"));
-const VerifyOtp = lazy(() => import("./components/VerifyOtp"));
-const AddHospital = lazy(() => import("./components/AddHospital"));
-const SuperAdminDashBorad = lazy(() => import("./pages/SuperAdminDashBorad"));
-const UserDashboard = lazy(() => import("./pages/UserDashboard"));
-const HospitalDashborad = lazy(() => import("./pages/HospitalDashborad"));
-const DoctorDashboard = lazy(() => import("./pages/DoctorDashboard"));
-const Department = lazy(() => import("./pages/Department"));
-const Doctors = lazy(() => import("./pages/Doctors"));
+import SignUp from "./components/SignUp";
+import Login from "./components/Login";
+import ForgetPassword from "./components/ForgetPassword";
+import ResetPassword from "./components/ResetPassword";
+import VerifyOtp from "./components/VerifyOtp";
+import AddHospital from "./components/AddHospital";
+import SuperAdminDashBorad from "./pages/SuperAdminDashBorad";
+import UserDashboard from "./pages/UserDashboard";
+import HospitalDashborad from "./pages/HospitalDashborad";
+import DoctorDashboard from "./pages/DoctorDashboard";
+import LabDashboard from "./pages/LabDashboard";
+import Department from "./pages/Department";
+import Doctors from "./pages/Doctors";
 
 const PageLoader = () => (
   <div className="flex min-h-[calc(100svh-73px)] items-center justify-center bg-slate-50 px-4 dark:bg-slate-950">
@@ -48,6 +48,7 @@ const App = () => {
           <Route path="/super-admin/dashboard" element={withProtected(<SuperAdminDashBorad />, ["superAdmin"])} />
           <Route path="/hospital/dashboard" element={withProtected(<HospitalDashborad />, ["hospital", "admin"])} />
           <Route path="/doctor/dashboard" element={withProtected(<DoctorDashboard />, ["doctor"])} />
+          <Route path="/lab/dashboard" element={withProtected(<LabDashboard />, ["lab"])} />
           <Route path="/user/dashboard" element={<UserDashboard />} />
 
           <Route path="/hospital/department" element={withProtected(<Department />, ["hospital", "admin"])} />

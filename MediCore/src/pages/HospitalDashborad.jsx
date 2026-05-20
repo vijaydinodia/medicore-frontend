@@ -3,7 +3,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../api";
 import AddDepartment from "../components/AddDepartment";
 import AddDoctor from "../components/AddDoctor";
+import AddLab from "../components/AddLab";
 import AddSubDepartment from "../components/AddSubDepartment";
+import AddTest from "../components/AddTest";
 import SearchInput from "../components/SearchInput";
 import { UseAuth } from "../custom_hook/useAuth";
 
@@ -11,10 +13,16 @@ const paths = {
   department: "M4 5h16M4 12h16M4 19h16",
   subDepartment: "M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z",
   doctor: "M12 14a5 5 0 100-10 5 5 0 000 10zM4 21a8 8 0 0116 0M19 8h3M20.5 6.5v3",
+  lab: "M9 3h6M10 3v5l-5 9a3 3 0 002.6 4.5h8.8A3 3 0 0019 17l-5-9V3M8 14h8",
+  test: "M9 3h6M10 3v5l-5 9a3 3 0 002.6 4.5h8.8A3 3 0 0019 17l-5-9V3M8 14h8",
   refresh: "M4 4v6h6M20 20v-6h-6M5 15a7 7 0 0012 3M19 9A7 7 0 007 6",
   close: "M6 18L18 6M6 6l12 12",
   hospital: "M4 20V7l8-4 8 4v13M8 20v-8h8v8M3 20h18",
   activity: "M22 12h-4l-3 8-6-16-3 8H2",
+  edit: "M16.862 4.487l1.651-1.65a2.121 2.121 0 113 3l-9.193 9.193-4 1 1-1 9.193-9.193z",
+  archive: "M3 7h18M5 7l1 13h12l1-13M9 11h6",
+  restore: "M4 4v6h6M20 20v-6h-6M5 15a7 7 0 0012 3M19 9A7 7 0 007 6",
+  trash: "M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v5M14 11v5",
 };
 
 const Icon = ({ name, className = "h-5 w-5" }) => (
@@ -66,6 +74,27 @@ const ActionButton = ({ icon, children, variant = "primary", ...props }) => {
   );
 };
 
+const IconButton = ({ icon, label, tone = "neutral", ...props }) => {
+  const colors = {
+    neutral: "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800",
+    warning: "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200",
+    danger: "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-200",
+    success: "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
+  };
+
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      className={`inline-flex h-10 w-10 items-center justify-center rounded-md border transition disabled:opacity-50 ${colors[tone]}`}
+      {...props}
+    >
+      <Icon name={icon} className="h-4 w-4" />
+    </button>
+  );
+};
+
 const Modal = ({ title, subtitle, onClose, children }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4" onClick={onClose}>
     <section className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900" onClick={(event) => event.stopPropagation()}>
@@ -88,6 +117,7 @@ const getDoctorImage = (doctor) => doctor.profileImage || doctor.doctorImage?.pr
 const getToday = () => new Date().toISOString().slice(0, 10);
 const reportTabs = [
   { id: "overview", label: "Overview" },
+  { id: "labs-tests", label: "Labs & Tests" },
   { id: "today-patients", label: "Today Patients" },
   { id: "doctor-attendance", label: "Doctor Attendance" },
 ];
@@ -102,6 +132,10 @@ const HospitalDashborad = () => {
   const [departments, setDepartments] = useState([]);
   const [subDepartments, setSubDepartments] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [labs, setLabs] = useState([]);
+  const [tests, setTests] = useState([]);
+  const [editingTest, setEditingTest] = useState(null);
+  const [actionId, setActionId] = useState("");
   const [patientStats, setPatientStats] = useState({
     todayPatients: 0,
     reachedPatients: 0,
@@ -128,6 +162,8 @@ const HospitalDashborad = () => {
   const filteredDepartments = departments.filter((item) => getRecordId(item.hospitalId) === hospitalId);
   const filteredSubDepartments = subDepartments.filter((item) => getRecordId(item.hospitalId) === hospitalId);
   const filteredDoctors = doctors.filter((item) => getRecordId(item.hospitalId) === hospitalId);
+  const filteredLabs = labs.filter((item) => getRecordId(item.hospitalId) === hospitalId);
+  const filteredTests = tests.filter((item) => getRecordId(item.hospitalId) === hospitalId);
 
   const searchRecords = (items, keys) => {
     const query = searchTerm.trim().toLowerCase();
@@ -141,6 +177,8 @@ const HospitalDashborad = () => {
   const visibleDepartments = searchRecords(filteredDepartments, ["departmentName", "departmentCode", "description", "status"]);
   const visibleSubDepartments = searchRecords(filteredSubDepartments, ["subDepartmentName", "subDepartmentCode", "description", "status"]);
   const visibleDoctors = searchRecords(filteredDoctors, ["doctorName", "doctorCode", "email", "specialization", "qualification", "status"]);
+  const visibleLabs = searchRecords(filteredLabs, ["labName", "labCode", "email", "phone", "inChargeName", "status"]);
+  const visibleTests = searchRecords(filteredTests, ["testName", "testCode", "category", "sampleType", "status"]);
 
   let statusTone = "warning";
   if (hospital.status === "approved") statusTone = "success";
@@ -158,11 +196,15 @@ const HospitalDashborad = () => {
       const departmentRes = await axiosInstance.get("/department/getAllDepartments");
       const subDepartmentRes = await axiosInstance.get("/sub-department/getAllSubDepartments");
       const doctorRes = await axiosInstance.get("/doctor/getAllDoctors");
+      const labRes = await axiosInstance.get("/lab/getAllLabs");
+      const testRes = await axiosInstance.get("/test/getAllTests?includeDeleted=true");
       const patientStatsRes = await axiosInstance.get(`/appointment/hospitalStats?date=${statsDate}`);
 
       setDepartments(departmentRes.data.data || []);
       setSubDepartments(subDepartmentRes.data.data || []);
       setDoctors(doctorRes.data.data || []);
+      setLabs(labRes.data.data || []);
+      setTests(testRes.data.data || []);
       setPatientStats(patientStatsRes.data.data || {});
     } catch (error) {
       setMessage(error.response?.data?.message || "Unable to load hospital dashboard data.");
@@ -175,22 +217,69 @@ const HospitalDashborad = () => {
     loadDashboard();
   }, [hospitalId, statsDate]);
 
-  const closeForm = () => setActiveForm("");
+  const closeForm = () => {
+    setActiveForm("");
+    setEditingTest(null);
+  };
   const afterCreate = () => {
     loadDashboard();
   };
 
+  const runTestAction = async (test, action) => {
+    const confirmMessage = {
+      softDelete: "Move this test to deleted list?",
+      restore: "Restore this test?",
+      hardDelete: "Permanently delete this test?",
+    };
+
+    if (!window.confirm(confirmMessage[action])) return;
+
+    const urls = {
+      softDelete: `/test/softDeleteTest/${test._id}`,
+      restore: `/test/restoreTest/${test._id}`,
+      hardDelete: `/test/hardDeleteTest/${test._id}`,
+    };
+
+    try {
+      setActionId(test._id);
+      setMessage("");
+      const method = action === "hardDelete" ? "delete" : "patch";
+      const res = await axiosInstance[method](urls[action]);
+      setMessage(res.data.message || "Test action completed.");
+      await loadDashboard();
+    } catch (error) {
+      setMessage(error.response?.data?.message || "Unable to update test.");
+    } finally {
+      setActionId("");
+    }
+  };
+
+  const openEditTest = (test) => {
+    setEditingTest(test);
+    setActiveForm("editTest");
+  };
+
+  const afterUpdateTest = async () => {
+    setEditingTest(null);
+    setActiveForm("");
+    await loadDashboard();
+  };
+
   const canAddNestedRecords = filteredDepartments.length > 0;
+  const canAddTest = filteredLabs.length > 0;
   const tabFromUrl = new URLSearchParams(location.search).get("tab");
   const activeReportTab = reportTabs.some((tab) => tab.id === tabFromUrl) ? tabFromUrl : "overview";
   const workspaceNavItems = [
     { id: "overview", label: "Overview", icon: "hospital" },
+    { id: "labs-tests", label: "Labs & Tests", icon: "lab" },
     { id: "today-patients", label: "Today Patients", icon: "activity" },
     { id: "doctor-attendance", label: "Doctor Attendance", icon: "doctor" },
   ];
   const openReportTab = (tabId) => {
     navigate(`/hospital/dashboard?tab=${tabId}`);
   };
+  const isPatientTab = activeReportTab === "today-patients" || activeReportTab === "doctor-attendance";
+  const isSetupTab = activeReportTab === "overview" || activeReportTab === "labs-tests";
   const patientSearch = patientSearchTerm.trim().toLowerCase();
   const visiblePatientAppointments = (patientStats.appointments || [])
     .filter((appointment) => {
@@ -277,7 +366,7 @@ const HospitalDashborad = () => {
 
         <div className="mt-auto rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Live counts</p>
-          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+          <div className="mt-4 grid grid-cols-4 gap-2 text-center">
             <div className="rounded-md bg-white p-2 dark:bg-slate-950">
               <p className="text-lg font-black">{filteredDepartments.length}</p>
               <p className="text-xs text-slate-500">Dept</p>
@@ -289,6 +378,10 @@ const HospitalDashborad = () => {
             <div className="rounded-md bg-white p-2 dark:bg-slate-950">
               <p className="text-lg font-black">{filteredDoctors.length}</p>
               <p className="text-xs text-slate-500">Doctors</p>
+            </div>
+            <div className="rounded-md bg-white p-2 dark:bg-slate-950">
+              <p className="text-lg font-black">{filteredLabs.length}</p>
+              <p className="text-xs text-slate-500">Labs</p>
             </div>
           </div>
         </div>
@@ -313,6 +406,12 @@ const HospitalDashborad = () => {
                 </ActionButton>
                 <ActionButton icon="doctor" onClick={() => setActiveForm("doctor")} variant="neutral" disabled={!canAddNestedRecords} title={!canAddNestedRecords ? "Add a department first" : "Add doctor"}>
                   Add doctor
+                </ActionButton>
+                <ActionButton icon="lab" onClick={() => setActiveForm("lab")} variant="neutral">
+                  Add lab
+                </ActionButton>
+                <ActionButton icon="test" onClick={() => setActiveForm("test")} variant="neutral" disabled={!canAddTest} title={!canAddTest ? "Add a lab first" : "Add test"}>
+                  Add test
                 </ActionButton>
                 <button type="button" onClick={loadDashboard} aria-label="Refresh dashboard" title="Refresh dashboard" className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
                   <Icon name="refresh" className="h-4 w-4" />
@@ -339,12 +438,12 @@ const HospitalDashborad = () => {
                 ))}
               </div>
               <SearchInput
-                value={activeReportTab === "overview" ? searchTerm : patientSearchTerm}
-                onChange={activeReportTab === "overview" ? setSearchTerm : setPatientSearchTerm}
-                placeholder={activeReportTab === "overview" ? "Search departments, subdepartments, doctors" : "Search patients or doctors"}
+                value={isSetupTab ? searchTerm : patientSearchTerm}
+                onChange={isSetupTab ? setSearchTerm : setPatientSearchTerm}
+                placeholder={isSetupTab ? "Search departments, doctors, labs, tests" : "Search patients or doctors"}
                 className="w-full"
               />
-              {activeReportTab !== "overview" && (
+              {isPatientTab && (
                 <select
                   value={patientStatusFilter}
                   onChange={(event) => setPatientStatusFilter(event.target.value)}
@@ -362,7 +461,7 @@ const HospitalDashborad = () => {
                 type="date"
                 value={statsDate}
                 onChange={(event) => setStatsDate(event.target.value)}
-                className="h-11 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-teal-950"
+                className={`h-11 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-teal-950 ${isPatientTab ? "" : "hidden"}`}
                 aria-label="Patient stats date"
               />
             </div>
@@ -383,17 +482,7 @@ const HospitalDashborad = () => {
               <StatCard label="Departments" value={visibleDepartments.length} icon="department" />
               <StatCard label="Subdepartments" value={visibleSubDepartments.length} icon="subDepartment" />
               <StatCard label="Doctors" value={visibleDoctors.length} icon="doctor" />
-              <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Status</p>
-                    <div className="mt-3"><Pill tone={statusTone}>{hospital.status}</Pill></div>
-                  </div>
-                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-200">
-                    <Icon name="activity" />
-                  </span>
-                </div>
-              </div>
+              <StatCard label="Labs" value={visibleLabs.length} icon="lab" />
             </section>
 
             <section className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
@@ -465,12 +554,175 @@ const HospitalDashborad = () => {
                     </div>
                   )}
                 </div>
+
+                <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-xl font-black text-slate-950 dark:text-white">Labs</h2>
+                    <Pill tone={statusTone}>{hospital.status}</Pill>
+                  </div>
+                  <div className="mt-5 space-y-3">
+                    {visibleLabs.slice(0, 5).map((lab) => (
+                      <div key={lab._id} className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate font-bold text-slate-950 dark:text-white">{lab.labName}</p>
+                            <p className="mt-1 truncate text-sm text-slate-500 dark:text-slate-400">{lab.email || lab.phone}</p>
+                          </div>
+                          <Pill tone={lab.status === "active" ? "success" : "warning"}>{lab.status}</Pill>
+                        </div>
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500 dark:text-slate-400">
+                          <span>{lab.labCode}</span>
+                          <span>{lab.cityId?.cityName || "City"}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {!loading && visibleLabs.length === 0 && (
+                      <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                        {searchTerm ? "No labs match your search." : "No labs added yet."}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-xl font-black text-slate-950 dark:text-white">Tests</h2>
+                    <Pill tone="neutral">{visibleTests.length}</Pill>
+                  </div>
+                  <div className="mt-5 space-y-3">
+                    {visibleTests.slice(0, 8).map((test) => (
+                      <div key={test._id} className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+                        <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
+                          <div className="min-w-0">
+                            <p className="truncate font-bold text-slate-950 dark:text-white">{test.testName}</p>
+                            <p className="mt-1 truncate text-sm text-slate-500 dark:text-slate-400">
+                              {test.testCode} | {test.labId?.labName || "Lab"} | Rs. {test.amount || 0}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Pill tone={!test.isDeleted && test.status === "active" ? "success" : "warning"}>
+                              {test.isDeleted ? "deleted" : test.status}
+                            </Pill>
+                            {!test.isDeleted && (
+                              <>
+                                <IconButton icon="edit" label="Edit test" onClick={() => openEditTest(test)} />
+                                <IconButton icon="archive" label="Soft delete test" tone="warning" disabled={actionId === test._id} onClick={() => runTestAction(test, "softDelete")} />
+                              </>
+                            )}
+                            {test.isDeleted && (
+                              <IconButton icon="restore" label="Restore test" tone="success" disabled={actionId === test._id} onClick={() => runTestAction(test, "restore")} />
+                            )}
+                            <IconButton icon="trash" label="Delete test permanently" tone="danger" disabled={actionId === test._id} onClick={() => runTestAction(test, "hardDelete")} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {!loading && visibleTests.length === 0 && (
+                      <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                        {searchTerm ? "No tests match your search." : "No tests added yet."}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </section>
           </>
         )}
 
-        {activeReportTab !== "overview" && (
+        {activeReportTab === "labs-tests" && (
+          <>
+            <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <StatCard label="Labs" value={visibleLabs.length} icon="lab" />
+              <StatCard label="Tests" value={visibleTests.length} icon="test" />
+              <StatCard label="Active tests" value={visibleTests.filter((test) => !test.isDeleted && test.status === "active").length} icon="activity" />
+              <StatCard label="Deleted tests" value={visibleTests.filter((test) => test.isDeleted).length} icon="archive" />
+            </section>
+
+            <section className="mt-6 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+              <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-950 dark:text-white">Labs</h2>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Hospital labs available for test setup.</p>
+                  </div>
+                  <ActionButton icon="lab" onClick={() => setActiveForm("lab")}>Add lab</ActionButton>
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  {visibleLabs.map((lab) => (
+                    <div key={lab._id} className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-bold text-slate-950 dark:text-white">{lab.labName}</p>
+                          <p className="mt-1 truncate text-sm text-slate-500 dark:text-slate-400">{lab.email || lab.phone}</p>
+                        </div>
+                        <Pill tone={lab.status === "active" ? "success" : "warning"}>{lab.status}</Pill>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500 dark:text-slate-400">
+                        <span>{lab.labCode}</span>
+                        <span>{lab.cityId?.cityName || "City"}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {!loading && visibleLabs.length === 0 && (
+                    <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                      {searchTerm ? "No labs match your search." : "No labs added yet."}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-950 dark:text-white">Lab Tests</h2>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Create, update, soft delete, restore, and permanently delete tests.</p>
+                  </div>
+                  <ActionButton icon="test" onClick={() => setActiveForm("test")} disabled={!canAddTest} title={!canAddTest ? "Add a lab first" : "Add test"}>
+                    Add test
+                  </ActionButton>
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  {visibleTests.map((test) => (
+                    <div key={test._id} className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+                      <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
+                        <div className="min-w-0">
+                          <p className="truncate font-bold text-slate-950 dark:text-white">{test.testName}</p>
+                          <p className="mt-1 truncate text-sm text-slate-500 dark:text-slate-400">
+                            {test.testCode} | {test.labId?.labName || "Lab"} | Rs. {test.amount || 0}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Pill tone={!test.isDeleted && test.status === "active" ? "success" : "warning"}>
+                            {test.isDeleted ? "deleted" : test.status}
+                          </Pill>
+                          {!test.isDeleted && (
+                            <>
+                              <IconButton icon="edit" label="Edit test" onClick={() => openEditTest(test)} />
+                              <IconButton icon="archive" label="Soft delete test" tone="warning" disabled={actionId === test._id} onClick={() => runTestAction(test, "softDelete")} />
+                            </>
+                          )}
+                          {test.isDeleted && (
+                            <IconButton icon="restore" label="Restore test" tone="success" disabled={actionId === test._id} onClick={() => runTestAction(test, "restore")} />
+                          )}
+                          <IconButton icon="trash" label="Delete test permanently" tone="danger" disabled={actionId === test._id} onClick={() => runTestAction(test, "hardDelete")} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {!loading && visibleTests.length === 0 && (
+                    <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                      {searchTerm ? "No tests match your search." : "No tests added yet."}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          </>
+        )}
+
+        {isPatientTab && (
           <>
             <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <StatCard label="Patients today" value={patientStats.todayPatients || 0} icon="activity" />
@@ -559,6 +811,24 @@ const HospitalDashborad = () => {
       {activeForm === "doctor" && (
         <Modal title="Add doctor" subtitle="Create a doctor profile and send account credentials by email." onClose={closeForm}>
           <AddDoctor hospitalId={hospitalId} departments={filteredDepartments} subDepartments={filteredSubDepartments} onCreated={afterCreate} />
+        </Modal>
+      )}
+
+      {activeForm === "lab" && (
+        <Modal title="Add lab" subtitle="Create a lab account and send credentials by email." onClose={closeForm}>
+          <AddLab onCreated={afterCreate} />
+        </Modal>
+      )}
+
+      {activeForm === "test" && (
+        <Modal title="Add test" subtitle="Create a test under one of your hospital labs." onClose={closeForm}>
+          <AddTest labs={filteredLabs} onCreated={afterCreate} />
+        </Modal>
+      )}
+
+      {activeForm === "editTest" && editingTest && (
+        <Modal title="Update test" subtitle="Change test details, fees, lab, or status." onClose={closeForm}>
+          <AddTest labs={filteredLabs} editTest={editingTest} onUpdated={afterUpdateTest} />
         </Modal>
       )}
     </main>

@@ -57,6 +57,10 @@ const Header = () => {
           { name: "Dashboard", path: dashboardPath },
           { name: "Patients", path: "/doctor/dashboard#patients" },
         ]
+      : user?.role === "lab"
+      ? [
+          { name: "Dashboard", path: dashboardPath },
+        ]
       : user?.role === "user"
       ? [
           { name: "Dashboard", path: dashboardPath },

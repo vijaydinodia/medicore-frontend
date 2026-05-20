@@ -22,6 +22,7 @@ export const getDashboardPath = (user) => {
   if (user?.role === "superAdmin") return "/super-admin/dashboard";
   if (user?.role === "hospital") return "/hospital/dashboard";
   if (user?.role === "doctor") return "/doctor/dashboard";
+  if (user?.role === "lab") return "/lab/dashboard";
 
   if (user?.role === "admin") {
     return "/hospital/dashboard";
