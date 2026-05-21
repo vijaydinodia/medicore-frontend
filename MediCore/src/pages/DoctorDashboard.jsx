@@ -18,6 +18,11 @@ const emptyMedicine = {
 
 const getToday = () => new Date().toISOString().slice(0, 10);
 
+const getId = (value) => {
+  if (!value) return "";
+  return value._id || value;
+};
+
 const formatDate = (dateValue) => {
   if (!dateValue) return "-";
   return new Date(dateValue).toLocaleDateString("en-IN", {
@@ -265,11 +270,21 @@ const AppointmentRow = ({ appointment, onReached, onMedicine }) => {
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                   {item.hospitalId?.hospitalName || "Hospital"} | {item.timeSlot || "-"}
                 </p>
-                <MedicineSummary medicine={item.medicine} />
+                <MedicineSummary medicine={item.medicine} reports={item.reports} />
               </div>
             ))}
           </div>
         </details>
+      )}
+
+      {(appointment.reports || []).length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {(appointment.reports || []).map((report) => (
+            <a key={report._id} href={report.fileUrl} target="_blank" rel="noreferrer" className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 underline dark:bg-emerald-950 dark:text-emerald-200">
+              {report.reportName || "Report"}
+            </a>
+          ))}
+        </div>
       )}
     </article>
   );
@@ -286,9 +301,33 @@ const MedicineModal = ({ appointment, onClose, onSaved }) => {
     nextVisitDate: existing.nextVisitDate ? String(existing.nextVisitDate).slice(0, 10) : "",
     notes: existing.notes || "",
     medicines: existing.medicines?.length ? existing.medicines : [{ ...emptyMedicine }],
+    tests: existing.tests?.length
+      ? existing.tests.map((test) => ({
+          testId: getId(test.testId),
+          testName: test.testName || test.testId?.testName || "",
+        }))
+      : [],
   });
+  const [availableTests, setAvailableTests] = useState([]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const loadTests = async () => {
+      try {
+        const response = await axiosInstance.get("/test/getAllTests");
+        const hospitalId = getId(appointment.hospitalId);
+        const testList = (response.data.data || []).filter((test) => {
+          return getId(test.hospitalId) === hospitalId && !test.isDeleted && test.status !== "inactive";
+        });
+        setAvailableTests(testList);
+      } catch (error) {
+        setAvailableTests([]);
+      }
+    };
+
+    loadTests();
+  }, [appointment.hospitalId]);
 
   const updateField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -311,6 +350,36 @@ const MedicineModal = ({ appointment, onClose, onSaved }) => {
     setForm((prev) => ({
       ...prev,
       medicines: prev.medicines.length === 1 ? prev.medicines : prev.medicines.filter((_, itemIndex) => itemIndex !== index),
+    }));
+  };
+
+  const addTest = (testId) => {
+    const test = availableTests.find((item) => item._id === testId);
+
+    if (!test) return;
+
+    setForm((prev) => {
+      const alreadyAdded = prev.tests.some((item) => item.testId === test._id);
+
+      if (alreadyAdded) return prev;
+
+      return {
+        ...prev,
+        tests: [
+          ...prev.tests,
+          {
+            testId: test._id,
+            testName: test.testName,
+          },
+        ],
+      };
+    });
+  };
+
+  const removeTest = (testId) => {
+    setForm((prev) => ({
+      ...prev,
+      tests: prev.tests.filter((test) => test.testId !== testId),
     }));
   };
 
@@ -365,6 +434,38 @@ const MedicineModal = ({ appointment, onClose, onSaved }) => {
             <Field label="Temperature" value={form.temperature} onChange={(value) => updateField("temperature", value)} />
             <Field label="Weight" value={form.weight} onChange={(value) => updateField("weight", value)} />
             <Field label="Next visit" type="date" value={form.nextVisitDate} onChange={(value) => updateField("nextVisitDate", value)} />
+          </div>
+
+          <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+            <label className="block">
+              <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Tests</span>
+              <select
+                value=""
+                onChange={(event) => addTest(event.target.value)}
+                className="mt-2 h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-950 outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-teal-950"
+              >
+                <option value="">Select test</option>
+                {availableTests.map((test) => (
+                  <option key={test._id} value={test._id}>
+                    {test.testName} - {test.labId?.labName || "Lab"}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {form.tests.map((test) => (
+                <span key={test.testId} className="inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-800 dark:bg-teal-950 dark:text-teal-200">
+                  {test.testName || "Test"}
+                  <button type="button" onClick={() => removeTest(test.testId)} className="font-black">
+                    X
+                  </button>
+                </span>
+              ))}
+              {form.tests.length === 0 && (
+                <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">No test selected.</span>
+              )}
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -450,7 +551,7 @@ const Info = ({ label, value }) => (
   </div>
 );
 
-const MedicineSummary = ({ medicine }) => {
+const MedicineSummary = ({ medicine, reports = [] }) => {
   if (!medicine) {
     return <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">No medicine saved.</p>;
   }
@@ -466,6 +567,24 @@ const MedicineSummary = ({ medicine }) => {
           </span>
         ))}
       </div>
+      {(medicine.tests || []).length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {(medicine.tests || []).map((item, index) => (
+            <span key={index} className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+              {item.testName || item.testId?.testName || "Test"}
+            </span>
+          ))}
+        </div>
+      )}
+      {reports.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {reports.map((report) => (
+            <a key={report._id} href={report.fileUrl} target="_blank" rel="noreferrer" className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 underline dark:bg-emerald-950 dark:text-emerald-200">
+              {report.reportName || "Report"}
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

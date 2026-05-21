@@ -552,7 +552,7 @@ const UserDashboard = () => {
                       Share
                     </label>
                   </div>
-                  <MedicineHistory medicine={appointment.medicine} />
+                  <MedicineHistory medicine={appointment.medicine} reports={appointment.reports} />
                 </div>
 
                 {["pending", "confirmed"].includes(appointment.status) && (
@@ -683,7 +683,7 @@ const InfoBox = ({ label, value }) => {
   );
 };
 
-const MedicineHistory = ({ medicine }) => {
+const MedicineHistory = ({ medicine, reports = [] }) => {
   if (!medicine) {
     return (
       <p className="mt-4 text-sm font-semibold text-slate-500 dark:text-slate-400">
@@ -713,6 +713,38 @@ const MedicineHistory = ({ medicine }) => {
           </div>
         ))}
       </div>
+      {(medicine.tests || []).length > 0 && (
+        <div className="mt-4">
+          <p className="text-sm font-black text-slate-950 dark:text-white">Tests</p>
+          <div className="mt-3 space-y-2">
+            {(medicine.tests || []).map((item, index) => (
+              <div key={index} className="rounded-md border border-slate-200 bg-white p-3 text-sm dark:border-slate-800 dark:bg-slate-900">
+                <p className="font-black text-slate-950 dark:text-white">
+                  {item.testName || item.testId?.testName || "Test"}
+                </p>
+                <p className="mt-1 text-slate-600 dark:text-slate-300">
+                  {item.labId?.labName || "Lab not available"} | {item.status || "pending"}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {reports.length > 0 && (
+        <div className="mt-4">
+          <p className="text-sm font-black text-slate-950 dark:text-white">Reports</p>
+          <div className="mt-3 space-y-2">
+            {reports.map((report) => (
+              <a key={report._id} href={report.fileUrl} target="_blank" rel="noreferrer" className="block rounded-md border border-slate-200 bg-white p-3 text-sm dark:border-slate-800 dark:bg-slate-900">
+                <span className="font-black text-slate-950 dark:text-white">{report.reportName || "Report"}</span>
+                <span className="mt-1 block text-slate-600 dark:text-slate-300">
+                  {report.testId?.testName || report.reportType || "Lab report"} | {report.status || "verified"}
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
       {medicine.notes && (
         <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
           <span className="font-bold text-slate-900 dark:text-white">Notes:</span> {medicine.notes}

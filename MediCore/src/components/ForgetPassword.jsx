@@ -13,16 +13,20 @@ const ForgetPassword = () => {
     e.preventDefault();
     setError("");
 
+    if (loading) return;
+
     if (!email.trim()) {
       return setError("Email is required.");
     }
 
     try {
       setLoading(true);
-      await axiosInstance.post("/user/forget", { email: email.trim().toLowerCase() });
-      navigate("/verifyotp", { state: { email: email.trim().toLowerCase() } });
+      const normalizedEmail = email.trim().toLowerCase();
+      await axiosInstance.post("/user/forget", { email: normalizedEmail });
+      sessionStorage.setItem("resetEmail", normalizedEmail);
+      navigate("/verifyotp", { state: { email: normalizedEmail } });
     } catch (err) {
-      setError(err.response?.data?.message || "Unable to send OTP. Please try again.");
+      setError(err.response?.data?.message || err.response?.data?.error || "Unable to send OTP. Please try again.");
     } finally {
       setLoading(false);
     }

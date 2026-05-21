@@ -6,7 +6,8 @@ import AuthShell from "./AuthShell";
 const VerifyOtp = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState(location.state?.email || "");
+  const savedEmail = location.state?.email || sessionStorage.getItem("resetEmail") || "";
+  const [email, setEmail] = useState(savedEmail);
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -14,6 +15,8 @@ const VerifyOtp = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (loading) return;
 
     if (!(email.trim() && otp.trim())) {
       return setError("Email and OTP are required.");
@@ -25,9 +28,10 @@ const VerifyOtp = () => {
         email: email.trim().toLowerCase(),
         otp: otp.trim(),
       });
+      sessionStorage.setItem("resetEmail", email.trim().toLowerCase());
       navigate("/resetpassword", { state: { email: email.trim().toLowerCase() } });
     } catch (err) {
-      setError(err.response?.data?.message || "OTP verification failed.");
+      setError(err.response?.data?.message || "OTP verification failed. Please use the latest OTP from your email.");
     } finally {
       setLoading(false);
     }
@@ -54,7 +58,7 @@ const VerifyOtp = () => {
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">Email address</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} autoComplete="email" />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} autoComplete="email" readOnly={Boolean(savedEmail)} />
         </div>
         <div>
           <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">OTP code</label>
