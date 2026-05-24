@@ -360,7 +360,9 @@ const AddHospital = () => {
                 <select value={form.stateId} onChange={(e) => handleChange("stateId", e.target.value)} className={inputClass}>
                   <option value="" disabled>{loadingStates ? "Loading states..." : states.length ? "Select state" : "No states available"}</option>
                   {states.map((item) => (
-                    <option key={item._id} value={item._id}>{item.stateName}</option>
+                    <option key={item._id} value={item._id} disabled={item.status !== "active"}>
+                      {item.stateName} {item.status !== "active" ? "(inactive)" : "(active)"}
+                    </option>
                   ))}
                 </select>
               </Field>

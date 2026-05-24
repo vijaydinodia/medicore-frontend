@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import EventNoteRoundedIcon from "@mui/icons-material/EventNoteRounded";
+import FilterListRoundedIcon from "@mui/icons-material/FilterListRounded";
 import LocalHospitalRoundedIcon from "@mui/icons-material/LocalHospitalRounded";
 import MedicalServicesRoundedIcon from "@mui/icons-material/MedicalServicesRounded";
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
@@ -12,7 +13,6 @@ import SearchInput from "../components/SearchInput";
 import { getAuthInfo } from "../custom_hook/useAuth";
 
 const AppointmentModal = lazy(() => import("../components/AppointmentModal"));
-const HospitalDetails = lazy(() => import("../components/HospitalDetails"));
 
 const money = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -34,6 +34,8 @@ const getHospitalPhoto = (hospital) => {
 const getDoctorPhoto = (doctor) => {
   return doctor.profileImage || doctor.doctorImage?.profileImage || doctor.doctorImage?.url || "";
 };
+
+const getHistoryDoctorId = (appointment) => getId(appointment.doctorId) || "unknown-doctor";
 
 const getTestPhoto = (test) => {
   if (test.labId?.logo) return test.labId.logo;
@@ -91,10 +93,11 @@ const UserDashboard = () => {
   const [historyStatusFilter, setHistoryStatusFilter] = useState("all");
   const [historySortDirection, setHistorySortDirection] = useState("desc");
   const [historyDate, setHistoryDate] = useState("");
+  const [selectedHistoryDoctorId, setSelectedHistoryDoctorId] = useState("");
+  const [showHistoryFilters, setShowHistoryFilters] = useState(false);
   const [selectedHospitalId, setSelectedHospitalId] = useState("");
   const [selectedDepartmentId, setSelectedDepartmentId] = useState("all");
   const [bookingDoctor, setBookingDoctor] = useState(null);
-  const [detailsHospital, setDetailsHospital] = useState(null);
 
   const [hospitals, setHospitals] = useState([]);
   const [doctors, setDoctors] = useState([]);
@@ -232,6 +235,7 @@ const UserDashboard = () => {
   const visibleAppointments = appointments.filter((appointment) => {
     if (historyStatusFilter !== "all" && appointment.status !== historyStatusFilter) return false;
     if (historyDate && getDateInputValue(appointment.date) !== historyDate) return false;
+    if (selectedHistoryDoctorId && getHistoryDoctorId(appointment) !== selectedHistoryDoctorId) return false;
     if (!text) return true;
 
     const values = [
@@ -248,6 +252,60 @@ const UserDashboard = () => {
     const bDate = new Date(b.date || b.createdAt || 0).getTime();
     return (aDate - bDate) * (historySortDirection === "asc" ? 1 : -1);
   });
+
+  const historyDoctorGroups = appointments.reduce((groups, appointment) => {
+    if (historyStatusFilter !== "all" && appointment.status !== historyStatusFilter) return groups;
+    if (historyDate && getDateInputValue(appointment.date) !== historyDate) return groups;
+
+    const doctorId = getHistoryDoctorId(appointment);
+    const doctorName = appointment.doctorId?.doctorName || "Doctor not available";
+    const hospitalName = appointment.hospitalId?.hospitalName || "Hospital not available";
+    const group = groups[doctorId] || {
+      doctorId,
+      doctorName,
+      specialization: appointment.doctorId?.specialization || "Doctor",
+      hospitalNames: [],
+      appointmentCount: 0,
+      medicineCount: 0,
+      reportCount: 0,
+      latestDate: appointment.date || appointment.createdAt,
+    };
+
+    if (!group.hospitalNames.includes(hospitalName)) {
+      group.hospitalNames.push(hospitalName);
+    }
+
+    group.appointmentCount += 1;
+    if (appointment.medicine) group.medicineCount += 1;
+    group.reportCount += (appointment.reports || []).length;
+
+    const latestTime = new Date(group.latestDate || 0).getTime();
+    const appointmentTime = new Date(appointment.date || appointment.createdAt || 0).getTime();
+    if (appointmentTime > latestTime) {
+      group.latestDate = appointment.date || appointment.createdAt;
+    }
+
+    groups[doctorId] = group;
+    return groups;
+  }, {});
+
+  const visibleHistoryDoctorGroups = Object.values(historyDoctorGroups)
+    .filter((group) => {
+      if (!text) return true;
+      const values = [
+        group.doctorName,
+        group.specialization,
+        group.hospitalNames.join(" "),
+        formatDate(group.latestDate),
+      ];
+      return values.some((value) => String(value || "").toLowerCase().includes(text));
+    })
+    .sort((a, b) => {
+      const aDate = new Date(a.latestDate || 0).getTime();
+      const bDate = new Date(b.latestDate || 0).getTime();
+      return (aDate - bDate) * (historySortDirection === "asc" ? 1 : -1);
+    });
+  const selectedHistoryDoctor = selectedHistoryDoctorId ? historyDoctorGroups[selectedHistoryDoctorId] : null;
 
   const visibleTests = tests.filter((test) => {
     const activeTest = !test.isDeleted && test.status !== "inactive";
@@ -271,7 +329,9 @@ const UserDashboard = () => {
   let resultCount = visibleHospitals.length;
   if (activeTab === "doctor") resultCount = visibleDoctors.length;
   if (activeTab === "test") resultCount = visibleTests.length;
-  if (activeTab === "history") resultCount = visibleAppointments.length;
+  if (activeTab === "history") {
+    resultCount = selectedHistoryDoctorId ? visibleAppointments.length : visibleHistoryDoctorGroups.length;
+  }
 
   const openHospitalDoctors = (hospitalId) => {
     setSelectedHospitalId(hospitalId);
@@ -281,12 +341,14 @@ const UserDashboard = () => {
 
   const showHospitals = () => {
     setActiveTab("hospital");
+    setShowHistoryFilters(false);
     setSelectedHospitalId("");
     setSelectedDepartmentId("all");
   };
 
   const showDoctors = () => {
     setActiveTab("doctor");
+    setShowHistoryFilters(false);
     setSelectedHospitalId("");
     setSelectedDepartmentId("all");
   };
@@ -298,6 +360,7 @@ const UserDashboard = () => {
     }
 
     setActiveTab("test");
+    setShowHistoryFilters(false);
     setSelectedHospitalId("");
     setSelectedDepartmentId("all");
   };
@@ -309,8 +372,10 @@ const UserDashboard = () => {
     }
 
     setActiveTab("history");
+    setShowHistoryFilters(false);
     setSelectedHospitalId("");
     setSelectedDepartmentId("all");
+    setSelectedHistoryDoctorId("");
   };
 
   const openBooking = (doctor) => {
@@ -409,47 +474,63 @@ const UserDashboard = () => {
             </div>
           </div>
           {activeTab === "history" && (
-            <div className="mt-3 grid gap-2 border-t border-slate-200 pt-3 dark:border-slate-800 md:grid-cols-[1fr_1fr_1fr_auto]">
-              <input
-                type="date"
-                value={historyDate}
-                onChange={(event) => setHistoryDate(event.target.value)}
-                className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                aria-label="Appointment history date"
-              />
-              <select
-                value={historyStatusFilter}
-                onChange={(event) => setHistoryStatusFilter(event.target.value)}
-                className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                aria-label="Status filter"
-              >
-                <option value="all">All appointments</option>
-                <option value="pending">Pending</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-              <select
-                value={historySortDirection}
-                onChange={(event) => setHistorySortDirection(event.target.value)}
-                className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                aria-label="Sort appointments by date"
-              >
-                <option value="desc">Newest first</option>
-                <option value="asc">Oldest first</option>
-              </select>
+            <div className="relative mt-3 flex justify-end border-t border-slate-200 pt-3 dark:border-slate-800">
               <button
                 type="button"
-                onClick={() => {
-                  setHistoryDate("");
-                  setHistoryStatusFilter("all");
-                  setHistorySortDirection("desc");
-                }}
+                onClick={() => setShowHistoryFilters((value) => !value)}
+                aria-expanded={showHistoryFilters}
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
               >
-                <RestartAltRoundedIcon className="!h-4 !w-4" aria-hidden="true" />
-                Reset
+                <FilterListRoundedIcon className="!h-4 !w-4" aria-hidden="true" />
+                Filters
               </button>
+              {showHistoryFilters && (
+                <div className="absolute right-0 top-14 z-30 w-full max-w-sm rounded-lg border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-slate-950">
+                  <div className="space-y-3">
+                    <input
+                      type="date"
+                      value={historyDate}
+                      onChange={(event) => setHistoryDate(event.target.value)}
+                      className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                      aria-label="Appointment history date"
+                    />
+                    <select
+                      value={historyStatusFilter}
+                      onChange={(event) => setHistoryStatusFilter(event.target.value)}
+                      className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                      aria-label="Status filter"
+                    >
+                      <option value="all">All appointments</option>
+                      <option value="pending">Pending</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                    <select
+                      value={historySortDirection}
+                      onChange={(event) => setHistorySortDirection(event.target.value)}
+                      className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                      aria-label="Sort appointments by date"
+                    >
+                      <option value="desc">Newest first</option>
+                      <option value="asc">Oldest first</option>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHistoryDate("");
+                        setHistoryStatusFilter("all");
+                        setHistorySortDirection("desc");
+                        setSelectedHistoryDoctorId("");
+                      }}
+                      className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      <RestartAltRoundedIcon className="!h-4 !w-4" aria-hidden="true" />
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </nav>
@@ -535,7 +616,7 @@ const UserDashboard = () => {
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
-                          setDetailsHospital(hospital);
+                          navigate(`/hospital/details/${hospital._id}`);
                         }}
                         className="h-11 rounded-md border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
                       >
@@ -557,7 +638,66 @@ const UserDashboard = () => {
 
         {!loading && activeTab === "history" && (
           <section className="mt-4 space-y-3">
-            {visibleAppointments.map((appointment) => (
+            {!selectedHistoryDoctorId && visibleHistoryDoctorGroups.map((group) => (
+              <article
+                key={group.doctorId}
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedHistoryDoctorId(group.doctorId)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setSelectedHistoryDoctorId(group.doctorId);
+                  }
+                }}
+                className="block w-full rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-teal-700"
+              >
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-200">
+                      <MedicalServicesRoundedIcon className="!h-5 !w-5" aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-teal-700 dark:text-teal-300">{group.specialization}</p>
+                      <h2 className="mt-0.5 truncate text-lg font-black text-slate-950 dark:text-white">
+                        {group.doctorName}
+                      </h2>
+                      <p className="truncate text-sm font-semibold text-slate-500 dark:text-slate-400">
+                        {group.hospitalNames.join(", ")}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[32rem]">
+                    <InfoBox label="Appointments" value={group.appointmentCount} />
+                    <InfoBox label="Medicine" value={group.medicineCount} />
+                    <InfoBox label="Reports" value={group.reportCount} />
+                    <InfoBox label="Latest Visit" value={formatDate(group.latestDate)} />
+                  </div>
+                </div>
+              </article>
+            ))}
+
+            {selectedHistoryDoctorId && (
+              <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-teal-700 dark:text-teal-300">Doctor history</p>
+                    <h2 className="mt-1 text-xl font-black text-slate-950 dark:text-white">
+                      {selectedHistoryDoctor?.doctorName || "Doctor not available"}
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedHistoryDoctorId("")}
+                    className="h-10 rounded-md border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    Back to Doctors
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {selectedHistoryDoctorId && visibleAppointments.map((appointment) => (
               <article key={appointment._id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <div className="flex flex-col gap-3 border-b border-slate-200 p-4 dark:border-slate-800 lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex min-w-0 items-center gap-3">
@@ -625,7 +765,13 @@ const UserDashboard = () => {
               </article>
             ))}
 
-            {visibleAppointments.length === 0 && (
+            {!selectedHistoryDoctorId && visibleHistoryDoctorGroups.length === 0 && (
+              <div className="rounded-lg border border-dashed border-slate-300 p-8 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                {searchText || historyDate || historyStatusFilter !== "all" ? "No doctors match this history view." : "No appointments booked yet."}
+              </div>
+            )}
+
+            {selectedHistoryDoctorId && visibleAppointments.length === 0 && (
               <div className="rounded-lg border border-dashed border-slate-300 p-8 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
                 {searchText || historyDate || historyStatusFilter !== "all" ? "No appointments match this history view." : "No appointments booked yet."}
               </div>
@@ -715,15 +861,6 @@ const UserDashboard = () => {
           </Suspense>
         )}
 
-        {detailsHospital && (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 px-4 py-6">
-            <div className="mx-auto max-w-5xl rounded-lg border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
-              <Suspense fallback={null}>
-                <HospitalDetails hospital={detailsHospital} onClose={() => setDetailsHospital(null)} />
-              </Suspense>
-            </div>
-          </div>
-        )}
       </div>
     </main>
   );

@@ -26,6 +26,9 @@ const AddLab = ({ onCreated }) => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const activeCities = cities.filter((city) => {
+    return city.status === "active" && city.districtId?.status === "active" && city.districtId?.stateId?.status === "active";
+  });
 
   useEffect(() => {
     const loadCities = async () => {
@@ -111,8 +114,8 @@ const AddLab = ({ onCreated }) => {
         <div>
           <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">City</label>
           <select name="cityId" value={form.cityId} onChange={handleChange} className={inputClass}>
-            <option value="">Select city</option>
-            {cities.map((city) => (
+            <option value="">{activeCities.length ? "Select active city" : "No active cities available"}</option>
+            {activeCities.map((city) => (
               <option key={city._id} value={city._id}>{city.cityName}</option>
             ))}
           </select>

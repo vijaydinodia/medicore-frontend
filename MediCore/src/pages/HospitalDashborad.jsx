@@ -191,7 +191,7 @@ const HospitalDashborad = () => {
     hospitalName: currentUser?.name || "Your Hospital",
     email: currentUser?.email || "",
     status: currentUser?.status || "approved",
-    isActive: (currentUser?.status || "approved") !== "rejected",
+    isActive: currentUser?.isActive !== false && (currentUser?.status || "approved") === "approved",
   };
 
   const filteredDepartments = departments.filter((item) => getRecordId(item.hospitalId) === hospitalId);
@@ -300,8 +300,9 @@ const HospitalDashborad = () => {
     await loadDashboard();
   };
 
-  const canAddNestedRecords = filteredDepartments.length > 0;
-  const canAddTest = filteredLabs.length > 0;
+  const canManageHospitalRecords = hospital.isActive && hospital.status === "approved";
+  const canAddNestedRecords = canManageHospitalRecords && filteredDepartments.length > 0;
+  const canAddTest = canManageHospitalRecords && filteredLabs.length > 0;
   const tabFromUrl = new URLSearchParams(location.search).get("tab");
   const activeReportTab = reportTabs.some((tab) => tab.id === tabFromUrl) ? tabFromUrl : "overview";
   const workspaceNavItems = [
@@ -319,11 +320,11 @@ const HospitalDashborad = () => {
   const isCurrentDate = statsDate === currentDate;
   const selectedDateLabel = formatSelectedDate(statsDate || currentDate);
   const addActionItems = [
-    { id: "department", label: "Add department", icon: "department", disabled: false, title: "Add department" },
-    { id: "subDepartment", label: "Add subdepartment", icon: "subDepartment", disabled: !canAddNestedRecords, title: !canAddNestedRecords ? "Add a department first" : "Add subdepartment" },
-    { id: "doctor", label: "Add doctor", icon: "doctor", disabled: !canAddNestedRecords, title: !canAddNestedRecords ? "Add a department first" : "Add doctor" },
-    { id: "lab", label: "Add lab", icon: "lab", disabled: false, title: "Add lab" },
-    { id: "test", label: "Add test", icon: "test", disabled: !canAddTest, title: !canAddTest ? "Add a lab first" : "Add test" },
+    { id: "department", label: "Add department", icon: "department", disabled: !canManageHospitalRecords, title: !canManageHospitalRecords ? "Hospital is inactive" : "Add department" },
+    { id: "subDepartment", label: "Add subdepartment", icon: "subDepartment", disabled: !canAddNestedRecords, title: !canManageHospitalRecords ? "Hospital is inactive" : !canAddNestedRecords ? "Add a department first" : "Add subdepartment" },
+    { id: "doctor", label: "Add doctor", icon: "doctor", disabled: !canAddNestedRecords, title: !canManageHospitalRecords ? "Hospital is inactive" : !canAddNestedRecords ? "Add a department first" : "Add doctor" },
+    { id: "lab", label: "Add lab", icon: "lab", disabled: !canManageHospitalRecords, title: !canManageHospitalRecords ? "Hospital is inactive" : "Add lab" },
+    { id: "test", label: "Add test", icon: "test", disabled: !canAddTest, title: !canManageHospitalRecords ? "Hospital is inactive" : !canAddTest ? "Add a lab first" : "Add test" },
   ];
   const patientSearch = patientSearchTerm.trim().toLowerCase();
   const visiblePatientAppointments = (patientStats.appointments || [])

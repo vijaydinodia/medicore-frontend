@@ -12,6 +12,7 @@ import AddHospital from "./components/AddHospital";
 import SuperAdminDashBorad from "./pages/SuperAdminDashBorad";
 import UserDashboard from "./pages/UserDashboard";
 import HospitalDashborad from "./pages/HospitalDashborad";
+import HospitalDetailsPage from "./pages/HospitalDetailsPage";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import LabDashboard from "./pages/LabDashboard";
 import Department from "./pages/Department";
@@ -47,6 +48,7 @@ const App = () => {
 
           <Route path="/super-admin/dashboard" element={withProtected(<SuperAdminDashBorad />, ["superAdmin"])} />
           <Route path="/hospital/dashboard" element={withProtected(<HospitalDashborad />, ["hospital", "admin"])} />
+          <Route path="/hospital/details/:id" element={<HospitalDetailsPage />} />
           <Route path="/doctor/dashboard" element={withProtected(<DoctorDashboard />, ["doctor"])} />
           <Route path="/lab/dashboard" element={withProtected(<LabDashboard />, ["lab"])} />
           <Route path="/user/dashboard" element={<UserDashboard />} />

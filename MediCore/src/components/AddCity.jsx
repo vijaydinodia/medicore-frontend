@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axiosInstance from "../api";
+import LocationIconButton from "./LocationIconButton";
 
 const AddCity = () => {
   const [cityName, setCityName] = useState("");
@@ -138,12 +139,12 @@ const AddCity = () => {
           </p>
         </div>
         {error && (
-          <p className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <p className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
             {error}
           </p>
         )}
         {message && (
-          <p className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+          <p className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
             {message}
           </p>
         )}
@@ -229,7 +230,10 @@ const AddCity = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {cities.map((city) => (
+              {cities.map((city) => {
+                const isInactive = city.status === "inactive";
+
+                return (
                 <tr key={city._id} className="hover:bg-slate-50 dark:hover:bg-slate-900">
                   <td className="px-6 py-4 font-semibold text-slate-950 dark:text-white">
                     {city.cityName}
@@ -241,47 +245,43 @@ const AddCity = () => {
                     {city.districtId?.districtName || "No district"}
                   </td>
                   <td className="px-6 py-4">
-                    <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold capitalize text-emerald-700">
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${isInactive ? "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200"}`}>
                       {city.status || "active"}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap justify-end gap-2">
-                      <button
-                        type="button"
+                      <LocationIconButton
+                        action="edit"
+                        label="Edit city"
                         onClick={() => handleEdit(city)}
-                        className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        disabled={actionLoading === `softDelete-${city._id}`}
-                        onClick={() => handleAction(city._id, "softDelete")}
-                        className="rounded-md border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-60"
-                      >
-                        Soft Delete
-                      </button>
-                      <button
-                        type="button"
-                        disabled={actionLoading === `restore-${city._id}`}
-                        onClick={() => handleAction(city._id, "restore")}
-                        className="rounded-md border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-60"
-                      >
-                        Restore
-                      </button>
-                      <button
-                        type="button"
+                      />
+                      {isInactive ? (
+                        <LocationIconButton
+                          action="restore"
+                          label="Restore city"
+                          disabled={actionLoading === `restore-${city._id}`}
+                          onClick={() => handleAction(city._id, "restore")}
+                        />
+                      ) : (
+                        <LocationIconButton
+                          action="softDelete"
+                          label="Deactivate city"
+                          disabled={actionLoading === `softDelete-${city._id}`}
+                          onClick={() => handleAction(city._id, "softDelete")}
+                        />
+                      )}
+                      <LocationIconButton
+                        action="delete"
+                        label="Delete city permanently"
                         disabled={actionLoading === `delete-${city._id}`}
                         onClick={() => handleAction(city._id, "delete")}
-                        className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
-                      >
-                        Delete
-                      </button>
+                      />
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               {!cities.length && (
                 <tr>
                   <td colSpan="5" className="px-6 py-10 text-center text-slate-500 dark:text-slate-400">

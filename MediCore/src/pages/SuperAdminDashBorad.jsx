@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api";
 import EditProfile from "../components/EditProfile";
 import AddLocation from "../components/AddLocation";
-import HospitalDetails from "../components/HospitalDetails";
 import HospitalTableView from "../components/HospitalTableView";
 import SearchInput from "../components/SearchInput";
 import { UseTheme } from "../custom_hook/UseTheme";
@@ -112,7 +111,6 @@ const SuperAdminDashBorad = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [hospitals, setHospitals] = useState([]);
-  const [selectedHospital, setSelectedHospital] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [currentUser, setCurrentUser] = useState(() =>
@@ -172,8 +170,6 @@ const SuperAdminDashBorad = () => {
       await axiosInstance.patch(`/super-admin/hospitals/${hospitalId}/approve`);
       setMessage("Hospital approved successfully.");
       fetchHospitals();
-      if (selectedHospital?._id === hospitalId)
-        setSelectedHospital((prev) => ({ ...prev, status: "approved" }));
     } catch (error) {
       setMessage(error.response?.data?.message || "Approve failed.");
     }
@@ -191,8 +187,6 @@ const SuperAdminDashBorad = () => {
       await axiosInstance.patch(`/super-admin/hospitals/${hospitalId}/reject`);
       setMessage("Hospital rejected successfully.");
       fetchHospitals();
-      if (selectedHospital?._id === hospitalId)
-        setSelectedHospital((prev) => ({ ...prev, status: "rejected" }));
     } catch (error) {
       setMessage(error.response?.data?.message || "Reject failed.");
     }
@@ -205,8 +199,6 @@ const SuperAdminDashBorad = () => {
       );
       setMessage("Hospital soft deleted successfully.");
       fetchHospitals();
-      if (selectedHospital?._id === hospitalId)
-        setSelectedHospital((prev) => ({ ...prev, isDeleted: true }));
     } catch (error) {
       setMessage(error.response?.data?.message || "Delete failed.");
     }
@@ -217,8 +209,6 @@ const SuperAdminDashBorad = () => {
       await axiosInstance.patch(`/super-admin/hospitals/${hospitalId}/restore`);
       setMessage("Hospital restored successfully.");
       fetchHospitals();
-      if (selectedHospital?._id === hospitalId)
-        setSelectedHospital((prev) => ({ ...prev, isDeleted: false }));
     } catch (error) {
       setMessage(error.response?.data?.message || "Restore failed.");
     }
@@ -235,15 +225,6 @@ const SuperAdminDashBorad = () => {
       setMessage(error.response?.data?.message || "Status update failed.");
     }
   };
-
-  useEffect(() => {
-    const handleEscape = (event) => {
-      if (event.key === "Escape" && selectedHospital) setSelectedHospital(null);
-    };
-
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [selectedHospital]);
 
   const navItems = [
     { id: "hospital", label: "Hospitals", icon: "hospital" },
@@ -464,12 +445,13 @@ const SuperAdminDashBorad = () => {
                     hospitals={hospitals}
                     externalSearchTerm={searchTerm}
                     hideSearch
+                    allowEdit={false}
                     onApprove={handleApproveHospital}
                     onReject={handleRejectHospital}
                     onToggleActive={handleToggleActiveHospital}
                     onDelete={handleSoftDeleteHospital}
                     onRestore={handleRestoreHospital}
-                    onViewDetails={setSelectedHospital}
+                    onViewDetails={(hospital) => navigate(`/hospital/details/${hospital._id}`)}
                   />
                 )}
               </section>
@@ -478,22 +460,6 @@ const SuperAdminDashBorad = () => {
         </div>
       </section>
 
-      {selectedHospital && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4"
-          onClick={() => setSelectedHospital(null)}
-        >
-          <div
-            className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <HospitalDetails
-              hospital={selectedHospital}
-              onClose={() => setSelectedHospital(null)}
-            />
-          </div>
-        </div>
-      )}
     </main>
   );
 };

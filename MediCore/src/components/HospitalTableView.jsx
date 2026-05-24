@@ -87,6 +87,7 @@ const HospitalTableView = ({
   onViewDetails,
   externalSearchTerm,
   hideSearch = false,
+  allowEdit = true,
 }) => {
   const {
     viewMode,
@@ -196,7 +197,9 @@ const HospitalTableView = ({
         </>
       ) : (
         <>
-          <IconButton label="Edit hospital" icon="edit" tone="neutral" onClick={() => startEditing(hospital)} />
+          {allowEdit && (
+            <IconButton label="Edit hospital" icon="edit" tone="neutral" onClick={() => startEditing(hospital)} />
+          )}
           {!hospital.isDeleted ? (
             <>
               {hospital.status === "pending" && (
@@ -205,7 +208,7 @@ const HospitalTableView = ({
                   <IconButton label="Reject hospital" icon="reject" tone="danger" onClick={() => onReject(hospital._id)} />
                 </>
               )}
-          <IconButton label={hospital.isActive ? "Deactivate hospital" : "Activate hospital"} icon={hospital.isActive ? "block" : "power"} tone={hospital.isActive ? "warning" : "success"} onClick={() => onToggleActive(hospital._id)} />
+          <IconButton label={hospital.isActive ? "Deactivate hospital" : "Restore hospital"} icon={hospital.isActive ? "block" : "restore"} tone={hospital.isActive ? "warning" : "success"} onClick={() => onToggleActive(hospital._id)} />
               <IconButton label="Delete hospital" icon="trash" tone="danger" onClick={() => onDelete(hospital._id)} />
             </>
           ) : (

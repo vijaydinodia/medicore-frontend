@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axiosInstance from "../api";
+import LocationIconButton from "./LocationIconButton";
 
 const AddDistrict = () => {
   const [districtName, setDistrictName] = useState("");
@@ -109,32 +110,32 @@ const AddDistrict = () => {
     <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
       <form
         onSubmit={handleSubmit}
-        className="self-start rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+        className="self-start rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950"
       >
         <div className="mb-5">
-          <h2 className="text-lg font-bold text-slate-950">
+          <h2 className="text-lg font-bold text-slate-950 dark:text-white">
             {editingId ? "Update District" : "Create District"}
           </h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Link each district to its parent state.
           </p>
         </div>
         {error && (
-          <p className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <p className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
             {error}
           </p>
         )}
         {message && (
-          <p className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+          <p className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
             {message}
           </p>
         )}
-        <label className="mb-2 block text-sm font-semibold text-slate-700">State</label>
+        <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">State</label>
         <select
           value={stateId}
           onChange={(e) => setStateId(e.target.value)}
           disabled={Boolean(editingId)}
-          className="mb-4 h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+          className="mb-4 h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100 disabled:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:ring-teal-950 dark:disabled:bg-slate-800"
         >
           <option value="">Select state</option>
           {states.map((state) => (
@@ -144,20 +145,20 @@ const AddDistrict = () => {
           ))}
         </select>
 
-        <label className="mb-2 block text-sm font-semibold text-slate-700">
+        <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
           District Name
         </label>
         <input
           type="text"
           value={districtName}
           onChange={(e) => setDistrictName(e.target.value)}
-          className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+          className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-4 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:ring-teal-950"
           placeholder="Enter district name"
         />
         <button
           type="submit"
           disabled={loading}
-          className="mt-5 h-11 w-full rounded-md bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:bg-blue-300"
+          className="mt-5 h-11 w-full rounded-md bg-teal-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:bg-teal-300 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
         >
           {loading
             ? "Saving..."
@@ -169,24 +170,24 @@ const AddDistrict = () => {
           <button
             type="button"
             onClick={handleCancelEdit}
-            className="mt-3 h-11 w-full rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            className="mt-3 h-11 w-full rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             Cancel Edit
           </button>
         )}
       </form>
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
           <div>
-            <h2 className="text-lg font-bold text-slate-950">Districts</h2>
-            <p className="mt-1 text-sm text-slate-500">{districts.length} records</p>
+            <h2 className="text-lg font-bold text-slate-950 dark:text-white">Districts</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{districts.length} records</p>
           </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[620px] text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900 dark:text-slate-400">
               <tr>
                 <th className="px-6 py-3 font-semibold">District</th>
                 <th className="px-6 py-3 font-semibold">State</th>
@@ -194,60 +195,59 @@ const AddDistrict = () => {
                 <th className="px-6 py-3 text-right font-semibold">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {districts.map((district) => (
-                <tr key={district._id} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 font-semibold text-slate-950">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {districts.map((district) => {
+                const isInactive = district.status === "inactive";
+
+                return (
+                <tr key={district._id} className="hover:bg-slate-50 dark:hover:bg-slate-900">
+                  <td className="px-6 py-4 font-semibold text-slate-950 dark:text-white">
                     {district.districtName}
                   </td>
-                  <td className="px-6 py-4 text-slate-600">
+                  <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
                     {district.stateId?.stateName || "No state"}
                   </td>
                   <td className="px-6 py-4">
-                    <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold capitalize text-emerald-700">
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${isInactive ? "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200"}`}>
                       {district.status || "active"}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap justify-end gap-2">
-                      <button
-                        type="button"
+                      <LocationIconButton
+                        action="edit"
+                        label="Edit district"
                         onClick={() => handleEdit(district)}
-                        className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        disabled={actionLoading === `softDelete-${district._id}`}
-                        onClick={() => handleAction(district._id, "softDelete")}
-                        className="rounded-md border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-60"
-                      >
-                        Soft Delete
-                      </button>
-                      <button
-                        type="button"
-                        disabled={actionLoading === `restore-${district._id}`}
-                        onClick={() => handleAction(district._id, "restore")}
-                        className="rounded-md border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-60"
-                      >
-                        Restore
-                      </button>
-                      <button
-                        type="button"
+                      />
+                      {isInactive ? (
+                        <LocationIconButton
+                          action="restore"
+                          label="Restore district"
+                          disabled={actionLoading === `restore-${district._id}`}
+                          onClick={() => handleAction(district._id, "restore")}
+                        />
+                      ) : (
+                        <LocationIconButton
+                          action="softDelete"
+                          label="Deactivate district"
+                          disabled={actionLoading === `softDelete-${district._id}`}
+                          onClick={() => handleAction(district._id, "softDelete")}
+                        />
+                      )}
+                      <LocationIconButton
+                        action="delete"
+                        label="Delete district permanently"
                         disabled={actionLoading === `delete-${district._id}`}
                         onClick={() => handleAction(district._id, "delete")}
-                        className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
-                      >
-                        Delete
-                      </button>
+                      />
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               {!districts.length && (
                 <tr>
-                  <td colSpan="4" className="px-6 py-10 text-center text-slate-500">
+                  <td colSpan="4" className="px-6 py-10 text-center text-slate-500 dark:text-slate-400">
                     No districts added yet.
                   </td>
                 </tr>
