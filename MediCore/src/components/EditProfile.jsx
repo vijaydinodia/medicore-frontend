@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import axiosInstance from "../api";
 
 const emptyForm = {
@@ -136,6 +138,7 @@ const EditProfile = ({ user, onUpdated, buttonClassName = "", triggerClassName =
           `inline-flex h-11 items-center justify-center gap-2 rounded-md border border-teal-700 bg-teal-700 px-4 text-sm font-bold text-white transition hover:bg-teal-800 dark:border-teal-500 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400 ${buttonClassName}`
         }
       >
+        <EditRoundedIcon className="!h-4 !w-4" aria-hidden="true" />
         Edit profile
       </button>
 
@@ -162,7 +165,7 @@ const EditProfile = ({ user, onUpdated, buttonClassName = "", triggerClassName =
                 className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 text-xl leading-none text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                 aria-label="Close profile editor"
               >
-                x
+                <CloseRoundedIcon className="!h-5 !w-5" aria-hidden="true" />
               </button>
             </header>
 

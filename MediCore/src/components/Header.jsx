@@ -1,9 +1,35 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import AddBusinessRoundedIcon from "@mui/icons-material/AddBusinessRounded";
+import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
+import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
+import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
+import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
+import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
+import LocalHospitalRoundedIcon from "@mui/icons-material/LocalHospitalRounded";
+import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
+import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
+import MedicalServicesRoundedIcon from "@mui/icons-material/MedicalServicesRounded";
+import PersonAddAltRoundedIcon from "@mui/icons-material/PersonAddAltRounded";
+import ScienceRoundedIcon from "@mui/icons-material/ScienceRounded";
+import WbSunnyRoundedIcon from "@mui/icons-material/WbSunnyRounded";
 import { UseTheme } from "../custom_hook/UseTheme";
 import { getDashboardPath, UseAuth } from "../custom_hook/useAuth";
 import ChangePassword from "./ChangePassword";
 import EditProfile from "./EditProfile";
+
+const navIcons = {
+  "Add Hospital": AddBusinessRoundedIcon,
+  Dashboard: DashboardRoundedIcon,
+  Department: LocalHospitalRoundedIcon,
+  "Doctor Attendance": EventAvailableRoundedIcon,
+  Doctors: MedicalServicesRoundedIcon,
+  History: HistoryRoundedIcon,
+  Login: LoginRoundedIcon,
+  Patients: GroupsRoundedIcon,
+  "Sign Up": PersonAddAltRoundedIcon,
+  "Today Patients": GroupsRoundedIcon,
+};
 
 const Header = () => {
   const location = useLocation();
@@ -77,8 +103,8 @@ const Header = () => {
     <header className="sticky top-0 z-30 w-full border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
       <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 md:flex-row md:items-center md:justify-between">
         <Link to="/" className="flex items-center gap-3 text-slate-950 dark:text-white">
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-700 text-lg font-black text-white shadow-sm dark:bg-teal-500 dark:text-slate-950">
-            M
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-700 text-white shadow-sm ring-1 ring-teal-500/20 dark:bg-teal-500 dark:text-slate-950">
+            <LocalHospitalRoundedIcon className="!h-6 !w-6" aria-hidden="true" />
           </span>
           <span>
             <span className="block text-xl font-black leading-tight tracking-tight">MediCore</span>
@@ -89,6 +115,7 @@ const Header = () => {
         <div className="flex flex-wrap items-center gap-3">
           <nav className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-900">
             {navLinks.map((link) => {
+              const NavIcon = navIcons[link.name] || ScienceRoundedIcon;
               const currentPath = `${location.pathname}${location.search}${location.hash}`;
               const linkHasState = link.path.includes("?") || link.path.includes("#");
               const active = linkHasState
@@ -98,12 +125,13 @@ const Header = () => {
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold transition ${
                     active
                       ? "bg-white text-teal-800 shadow-sm dark:bg-slate-950 dark:text-teal-200"
                       : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
                   }`}
                 >
+                  <NavIcon className="!h-4 !w-4" aria-hidden="true" />
                   {link.name}
                 </Link>
               );
@@ -132,14 +160,15 @@ const Header = () => {
                   <div className="py-2">
                     <EditProfile
                       user={user}
-                      triggerClassName="flex w-full items-center rounded-md px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900"
+                      triggerClassName="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900"
                     />
-                    <ChangePassword triggerClassName="flex w-full items-center rounded-md px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900" />
+                    <ChangePassword triggerClassName="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900" />
                     <button
                       type="button"
                       onClick={logout}
-                      className="flex w-full items-center rounded-md px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/40"
+                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/40"
                     >
+                      <LogoutRoundedIcon className="!h-4 !w-4" aria-hidden="true" />
                       Logout
                     </button>
                   </div>
@@ -148,16 +177,8 @@ const Header = () => {
             </div>
           )}
 
-          <button onClick={toggleTheme} className="rounded-md p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white" aria-label="Toggle theme">
-            {theme === "light" ? (
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-              </svg>
-            ) : (
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            )}
+          <button onClick={toggleTheme} className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-100 hover:text-slate-950 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white" aria-label="Toggle theme">
+            {theme === "light" ? <DarkModeRoundedIcon className="!h-5 !w-5" aria-hidden="true" /> : <WbSunnyRoundedIcon className="!h-5 !w-5" aria-hidden="true" />}
           </button>
         </div>
       </div>

@@ -16,7 +16,19 @@ const emptyMedicine = {
   afterFood: true,
 };
 
-const getToday = () => new Date().toISOString().slice(0, 10);
+const getToday = () => {
+  const today = new Date();
+  const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 10);
+};
+
+const getDateInputValue = (dateValue) => {
+  if (!dateValue) return "";
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return "";
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 10);
+};
 
 const getId = (value) => {
   if (!value) return "";
@@ -38,6 +50,7 @@ const DoctorDashboard = () => {
   const name = user?.name || user?.doctorName || "Doctor";
 
   const [selectedDate, setSelectedDate] = useState(getToday());
+  const [historyDate, setHistoryDate] = useState("");
   const [appointments, setAppointments] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -160,7 +173,7 @@ const DoctorDashboard = () => {
               <h2 className="text-xl font-bold text-slate-950 dark:text-white">Appointments</h2>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{formatDate(selectedDate)}</p>
             </div>
-            <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto] lg:items-end">
+            <div className="grid gap-3 xl:grid-cols-[1fr_auto_auto_auto] xl:items-end">
               <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Search patients" />
               <label className="block">
                 <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Filter</span>
@@ -173,10 +186,22 @@ const DoctorDashboard = () => {
                   <option value="reached">Reached</option>
                 </select>
               </label>
+              <label className="block">
+                <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Patient history date</span>
+                <input
+                  type="date"
+                  value={historyDate}
+                  onChange={(event) => setHistoryDate(event.target.value)}
+                  className="mt-2 h-11 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                />
+              </label>
               <div className="flex gap-2">
                 <button type="button" onClick={() => changeSort("timeSlot")} className="h-11 rounded-md border border-slate-200 px-3 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200">Time</button>
                 <button type="button" onClick={() => changeSort("patient")} className="h-11 rounded-md border border-slate-200 px-3 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200">Patient</button>
                 <button type="button" onClick={() => changeSort("status")} className="h-11 rounded-md border border-slate-200 px-3 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200">Status</button>
+                {historyDate && (
+                  <button type="button" onClick={() => setHistoryDate("")} className="h-11 rounded-md border border-slate-200 px-3 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200">All History</button>
+                )}
               </div>
             </div>
           </div>
@@ -191,6 +216,7 @@ const DoctorDashboard = () => {
                 <AppointmentRow
                   key={appointment._id}
                   appointment={appointment}
+                  historyDate={historyDate}
                   onReached={() => markReached(appointment)}
                   onMedicine={() => setActiveAppointment(appointment)}
                 />
@@ -211,10 +237,13 @@ const DoctorDashboard = () => {
   );
 };
 
-const AppointmentRow = ({ appointment, onReached, onMedicine }) => {
+const AppointmentRow = ({ appointment, historyDate, onReached, onMedicine }) => {
   const patient = appointment.userId || {};
   const history = appointment.medicalHistory || [];
-  const medicineCount = history.filter((item) => item.medicine).length;
+  const visibleHistory = historyDate
+    ? history.filter((item) => getDateInputValue(item.date) === historyDate)
+    : history;
+  const medicineCount = visibleHistory.filter((item) => item.medicine).length;
 
   return (
     <article className="p-5">
@@ -259,10 +288,10 @@ const AppointmentRow = ({ appointment, onReached, onMedicine }) => {
       {history.length > 0 && (
         <details className="mt-4 rounded-md bg-slate-50 p-4 dark:bg-slate-950">
           <summary className="cursor-pointer text-sm font-black text-slate-800 dark:text-slate-100">
-            Shared medical history
+            Shared medical history {historyDate ? `for ${formatDate(historyDate)}` : ""}
           </summary>
           <div className="mt-4 space-y-3">
-            {history.map((item) => (
+            {visibleHistory.map((item) => (
               <div key={item._id} className="rounded-md border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
                 <p className="text-sm font-black text-slate-950 dark:text-white">
                   {formatDate(item.date)} - {item.doctorId?.doctorName || "Doctor"}
@@ -273,6 +302,11 @@ const AppointmentRow = ({ appointment, onReached, onMedicine }) => {
                 <MedicineSummary medicine={item.medicine} reports={item.reports} />
               </div>
             ))}
+            {visibleHistory.length === 0 && (
+              <div className="rounded-md border border-dashed border-slate-300 bg-white p-3 text-sm font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+                No shared medical history for this date.
+              </div>
+            )}
           </div>
         </details>
       )}

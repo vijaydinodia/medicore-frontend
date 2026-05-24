@@ -1,36 +1,52 @@
 import { useState } from "react";
+import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
+import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import GridViewRoundedIcon from "@mui/icons-material/GridViewRounded";
+import PowerSettingsNewRoundedIcon from "@mui/icons-material/PowerSettingsNewRounded";
+import RemoveRoundedIcon from "@mui/icons-material/RemoveRounded";
+import RestoreRoundedIcon from "@mui/icons-material/RestoreRounded";
+import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
+import TableRowsRoundedIcon from "@mui/icons-material/TableRowsRounded";
+import UnfoldMoreRoundedIcon from "@mui/icons-material/UnfoldMoreRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import { UseTableView } from "../custom_hook/UseTableView";
 import SearchInput from "./SearchInput";
 
 const icons = {
-  approve: "M5 13l4 4L19 7",
-  reject: "M6 18L18 6M6 6l12 12",
-  edit: "M16.862 4.487l1.651 1.651a2 2 0 010 2.828L8.5 18.98 4 20l1.02-4.5L15.034 5.487a2 2 0 012.828 0z",
-  save: "M5 4h11l3 3v13H5V4zm3 0v6h8V4M8 20v-6h8v6",
-  close: "M6 18L18 6M6 6l12 12",
-  power: "M12 3v9m5.657-5.657a8 8 0 11-11.314 0",
-  trash: "M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3",
-  restore: "M4 7v6h6M5.5 13A7 7 0 1012 5a7 7 0 00-6.5 4",
-  eye: "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6zM12 15a3 3 0 100-6 3 3 0 000 6z",
-  table: "M4 5h16M4 12h16M4 19h16M8 5v14M16 5v14",
-  card: "M4 5h7v7H4V5zm9 0h7v7h-7V5zM4 14h7v5H4v-5zm9 0h7v5h-7v-5z",
-  deselect: "M4 12h16",
-  sort: "M8 7l4-4 4 4M16 17l-4 4-4-4",
+  approve: CheckCircleRoundedIcon,
+  reject: CancelRoundedIcon,
+  edit: EditRoundedIcon,
+  save: SaveRoundedIcon,
+  close: CloseRoundedIcon,
+  power: PowerSettingsNewRoundedIcon,
+  trash: DeleteRoundedIcon,
+  restore: RestoreRoundedIcon,
+  eye: VisibilityRoundedIcon,
+  table: TableRowsRoundedIcon,
+  card: GridViewRoundedIcon,
+  deselect: RemoveRoundedIcon,
+  sort: UnfoldMoreRoundedIcon,
+  block: BlockRoundedIcon,
 };
 
 const Icon = ({ name, className = "h-4 w-4" }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-    <path strokeLinecap="round" strokeLinejoin="round" d={icons[name]} />
-  </svg>
+  icons[name] ? (() => {
+    const Component = icons[name];
+    return <Component className={className} aria-hidden="true" />;
+  })() : null
 );
 
 const IconButton = ({ label, icon, tone = "neutral", className = "", ...props }) => {
   const tones = {
-    primary: "border-teal-700 bg-teal-700 text-white hover:bg-teal-800 dark:border-teal-500 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400",
-    success: "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700",
-    danger: "border-rose-600 bg-rose-600 text-white hover:bg-rose-700",
-    warning: "border-amber-500 bg-amber-500 text-slate-950 hover:bg-amber-400",
-    neutral: "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800",
+    primary: "border-teal-700 bg-teal-700 text-white shadow-sm shadow-teal-900/10 hover:bg-teal-800 dark:border-teal-500 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400",
+    success: "border-emerald-600 bg-emerald-600 text-white shadow-sm shadow-emerald-900/10 hover:bg-emerald-700",
+    danger: "border-rose-600 bg-rose-600 text-white shadow-sm shadow-rose-900/10 hover:bg-rose-700",
+    warning: "border-amber-500 bg-amber-500 text-slate-950 shadow-sm shadow-amber-900/10 hover:bg-amber-400",
+    neutral: "border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800",
   };
 
   return (
@@ -38,7 +54,7 @@ const IconButton = ({ label, icon, tone = "neutral", className = "", ...props })
       type="button"
       aria-label={label}
       title={label}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-md border transition focus:outline-none focus:ring-4 focus:ring-teal-100 dark:focus:ring-teal-950 ${tones[tone]} ${className}`}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-md border transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-teal-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 dark:focus:ring-teal-950 ${tones[tone]} ${className}`}
       {...props}
     >
       <Icon name={icon} />
@@ -189,7 +205,7 @@ const HospitalTableView = ({
                   <IconButton label="Reject hospital" icon="reject" tone="danger" onClick={() => onReject(hospital._id)} />
                 </>
               )}
-              <IconButton label={hospital.isActive ? "Deactivate hospital" : "Activate hospital"} icon="power" tone={hospital.isActive ? "warning" : "success"} onClick={() => onToggleActive(hospital._id)} />
+          <IconButton label={hospital.isActive ? "Deactivate hospital" : "Activate hospital"} icon={hospital.isActive ? "block" : "power"} tone={hospital.isActive ? "warning" : "success"} onClick={() => onToggleActive(hospital._id)} />
               <IconButton label="Delete hospital" icon="trash" tone="danger" onClick={() => onDelete(hospital._id)} />
             </>
           ) : (
@@ -320,7 +336,7 @@ const HospitalTableView = ({
             <IconButton label="Approve selected" icon="approve" tone="success" onClick={handleBulkApprove} />
             <IconButton label="Reject selected" icon="reject" tone="danger" onClick={handleBulkReject} />
             <IconButton label="Activate selected" icon="power" tone="success" onClick={handleBulkActivate} />
-            <IconButton label="Deactivate selected" icon="power" tone="warning" onClick={handleBulkDeactivate} />
+            <IconButton label="Deactivate selected" icon="block" tone="warning" onClick={handleBulkDeactivate} />
             <IconButton label="Delete selected" icon="trash" tone="danger" onClick={deleteSelectedItems} />
           </div>
         )}
@@ -336,4 +352,3 @@ const HospitalTableView = ({
 };
 
 export default HospitalTableView;
-

@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
+import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
+import MonitorHeartOutlinedIcon from "@mui/icons-material/MonitorHeartOutlined";
 import axiosInstance from "../api";
 
 const hospitalTypes = ["Government", "Private", "Trust"];
@@ -51,21 +59,22 @@ const getApiErrorMessage = (error) => {
   return data?.error || data?.message || error.message || "Could not submit hospital.";
 };
 
-const paths = {
-  hospital: "M4 20V7l8-4 8 4v13M8 20v-8h8v8M3 20h18",
-  location: "M12 21s7-5.4 7-12a7 7 0 10-14 0c0 6.6 7 12 7 12zM12 11a2 2 0 100-4 2 2 0 000 4z",
-  activity: "M22 12h-4l-3 8-6-16-3 8H2",
-  file: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M8 13h8M8 17h5",
-  plus: "M12 5v14M5 12h14",
-  close: "M6 18L18 6M6 6l12 12",
-  check: "M5 13l4 4L19 7",
-  arrow: "M19 12H5M12 19l-7-7 7-7",
+const icons = {
+  hospital: LocalHospitalOutlinedIcon,
+  location: PlaceOutlinedIcon,
+  activity: MonitorHeartOutlinedIcon,
+  file: DescriptionOutlinedIcon,
+  plus: AddRoundedIcon,
+  close: CloseRoundedIcon,
+  check: CheckRoundedIcon,
+  arrow: ArrowBackRoundedIcon,
 };
 
 const Icon = ({ name, className = "h-5 w-5" }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-    <path strokeLinecap="round" strokeLinejoin="round" d={paths[name]} />
-  </svg>
+  icons[name] ? (() => {
+    const Component = icons[name];
+    return <Component className={className} aria-hidden="true" />;
+  })() : null
 );
 
 const Field = ({ label, children, className = "" }) => (
@@ -76,9 +85,9 @@ const Field = ({ label, children, className = "" }) => (
 );
 
 const Section = ({ icon, title, subtitle, children }) => (
-  <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+  <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:border-teal-100 hover:shadow-md dark:border-slate-800 dark:bg-slate-950 dark:hover:border-teal-900">
     <div className="flex items-start gap-3 border-b border-slate-100 pb-4 dark:border-slate-800">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-200">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-teal-50 text-teal-700 ring-1 ring-teal-100 dark:bg-teal-950 dark:text-teal-200 dark:ring-teal-900">
         <Icon name={icon} className="h-5 w-5" />
       </span>
       <div>

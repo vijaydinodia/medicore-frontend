@@ -1,5 +1,12 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
+import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
+import EventNoteRoundedIcon from "@mui/icons-material/EventNoteRounded";
+import LocalHospitalRoundedIcon from "@mui/icons-material/LocalHospitalRounded";
+import MedicalServicesRoundedIcon from "@mui/icons-material/MedicalServicesRounded";
+import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
+import ShareRoundedIcon from "@mui/icons-material/ShareRounded";
 import axiosInstance from "../api";
 import SearchInput from "../components/SearchInput";
 import { getAuthInfo } from "../custom_hook/useAuth";
@@ -44,6 +51,25 @@ const formatDate = (dateValue) => {
   });
 };
 
+const statusBadgeClass = (status = "pending") => {
+  const tones = {
+    completed: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
+    confirmed: "bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-200",
+    cancelled: "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200",
+    pending: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200",
+  };
+
+  return `w-fit rounded-full px-3 py-1 text-xs font-black uppercase ${tones[status] || tones.pending}`;
+};
+
+const getDateInputValue = (dateValue) => {
+  if (!dateValue) return "";
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return "";
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 10);
+};
+
 const formatDoctorTiming = (doctor) => {
   const days = (doctor.availableDays || []).join(", ");
   const start = doctor.availableTime?.startTime || "";
@@ -64,6 +90,7 @@ const UserDashboard = () => {
   const [searchText, setSearchText] = useState("");
   const [historyStatusFilter, setHistoryStatusFilter] = useState("all");
   const [historySortDirection, setHistorySortDirection] = useState("desc");
+  const [historyDate, setHistoryDate] = useState("");
   const [selectedHospitalId, setSelectedHospitalId] = useState("");
   const [selectedDepartmentId, setSelectedDepartmentId] = useState("all");
   const [bookingDoctor, setBookingDoctor] = useState(null);
@@ -204,6 +231,7 @@ const UserDashboard = () => {
 
   const visibleAppointments = appointments.filter((appointment) => {
     if (historyStatusFilter !== "all" && appointment.status !== historyStatusFilter) return false;
+    if (historyDate && getDateInputValue(appointment.date) !== historyDate) return false;
     if (!text) return true;
 
     const values = [
@@ -329,35 +357,35 @@ const UserDashboard = () => {
 
   const tabButtonClass = (tabName) => {
     if (activeTab === tabName) {
-      return "h-11 rounded-md bg-teal-700 px-4 text-sm font-black text-white shadow-sm transition dark:bg-teal-400 dark:text-slate-950";
+      return "h-10 rounded-md bg-teal-700 px-4 text-sm font-black text-white shadow-sm transition dark:bg-teal-400 dark:text-slate-950";
     }
 
-    return "h-11 rounded-md border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800";
+    return "h-10 rounded-md border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800";
   };
 
   return (
-    <main className="min-h-[calc(100svh-73px)] bg-slate-50 px-4 py-8 text-left dark:bg-slate-950 sm:px-6">
+    <main className="min-h-[calc(100svh-73px)] bg-slate-50 px-4 py-6 text-left dark:bg-slate-950 sm:px-6">
       <div className="mx-auto max-w-7xl">
-        <section className="border-b border-slate-200 pb-6 dark:border-slate-800">
+        <section className="border-b border-slate-200 pb-4 dark:border-slate-800">
           <p className="text-sm font-bold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-300">
             Patient browse
           </p>
-          <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 className="text-3xl font-black tracking-tight text-slate-950 dark:text-white">
+              <h1 className="text-2xl font-black tracking-tight text-slate-950 dark:text-white">
                 Find Care
               </h1>
-              <p className="mt-2 max-w-2xl text-slate-600 dark:text-slate-300">
+              <p className="mt-1 max-w-2xl text-sm text-slate-600 dark:text-slate-300">
                 Welcome, {user?.name || "guest"}. Search hospitals and doctors from one place.
               </p>
             </div>
-            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+            <p className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
               {resultCount} result(s)
             </p>
           </div>
         </section>
 
-        <nav className="sticky top-[73px] z-20 mt-6 rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <nav className="sticky top-[73px] z-20 mt-4 rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
             <SearchInput
               value={searchText}
@@ -381,11 +409,18 @@ const UserDashboard = () => {
             </div>
           </div>
           {activeTab === "history" && (
-            <div className="mt-3 grid gap-3 border-t border-slate-200 pt-3 dark:border-slate-800 sm:grid-cols-2">
+            <div className="mt-3 grid gap-2 border-t border-slate-200 pt-3 dark:border-slate-800 md:grid-cols-[1fr_1fr_1fr_auto]">
+              <input
+                type="date"
+                value={historyDate}
+                onChange={(event) => setHistoryDate(event.target.value)}
+                className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                aria-label="Appointment history date"
+              />
               <select
                 value={historyStatusFilter}
                 onChange={(event) => setHistoryStatusFilter(event.target.value)}
-                className="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                 aria-label="Status filter"
               >
                 <option value="all">All appointments</option>
@@ -397,12 +432,24 @@ const UserDashboard = () => {
               <select
                 value={historySortDirection}
                 onChange={(event) => setHistorySortDirection(event.target.value)}
-                className="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                 aria-label="Sort appointments by date"
               >
                 <option value="desc">Newest first</option>
                 <option value="asc">Oldest first</option>
               </select>
+              <button
+                type="button"
+                onClick={() => {
+                  setHistoryDate("");
+                  setHistoryStatusFilter("all");
+                  setHistorySortDirection("desc");
+                }}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                <RestartAltRoundedIcon className="!h-4 !w-4" aria-hidden="true" />
+                Reset
+              </button>
             </div>
           )}
         </nav>
@@ -509,39 +556,47 @@ const UserDashboard = () => {
         )}
 
         {!loading && activeTab === "history" && (
-          <section className="mt-6 space-y-4">
+          <section className="mt-4 space-y-3">
             {visibleAppointments.map((appointment) => (
-              <article key={appointment._id} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300">
-                      Appointment
-                    </p>
-                    <h2 className="mt-1 text-xl font-black text-slate-950 dark:text-white">
-                      {appointment.doctorId?.doctorName || "Doctor not available"}
-                    </h2>
-                    <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-slate-400">
-                      {appointment.hospitalId?.hospitalName || "Hospital not available"}
-                    </p>
+              <article key={appointment._id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex flex-col gap-3 border-b border-slate-200 p-4 dark:border-slate-800 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-200">
+                      <MedicalServicesRoundedIcon className="!h-5 !w-5" aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-teal-700 dark:text-teal-300">Appointment</p>
+                      <h2 className="mt-0.5 truncate text-lg font-black text-slate-950 dark:text-white">
+                        {appointment.doctorId?.doctorName || "Doctor not available"}
+                      </h2>
+                      <p className="truncate text-sm font-semibold text-slate-500 dark:text-slate-400">
+                        {appointment.hospitalId?.hospitalName || "Hospital not available"}
+                      </p>
+                    </div>
                   </div>
-                  <span className="w-fit rounded-full bg-amber-100 px-3 py-1 text-xs font-black uppercase text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                  <span className={statusBadgeClass(appointment.status)}>
                     {appointment.status || "pending"}
                   </span>
                 </div>
 
-                <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  <InfoBox label="Date" value={formatDate(appointment.date)} />
-                  <InfoBox label="Time Slot" value={appointment.timeSlot || "-"} />
-                  <InfoBox label="Booked On" value={formatDate(appointment.createdAt)} />
+                <div className="grid gap-3 p-4 sm:grid-cols-3">
+                  <InfoBox icon={CalendarMonthRoundedIcon} label="Date" value={formatDate(appointment.date)} />
+                  <InfoBox icon={AccessTimeRoundedIcon} label="Time Slot" value={appointment.timeSlot || "-"} />
+                  <InfoBox icon={EventNoteRoundedIcon} label="Booked On" value={formatDate(appointment.createdAt)} />
                 </div>
 
-                <div className="mt-5 rounded-md bg-slate-50 p-4 dark:bg-slate-950">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
+                <div className="mx-4 mb-4 rounded-md bg-slate-50 p-4 dark:bg-slate-950">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex gap-3">
+                      <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white text-teal-700 dark:bg-slate-900 dark:text-teal-200">
+                        <ShareRoundedIcon className="!h-4 !w-4" aria-hidden="true" />
+                      </span>
+                      <div>
                       <p className="text-sm font-black text-slate-950 dark:text-white">Medical history sharing</p>
                       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                         Allow future doctors to see this appointment and medicine.
                       </p>
+                      </div>
                     </div>
                     <label className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
                       <input
@@ -556,12 +611,12 @@ const UserDashboard = () => {
                 </div>
 
                 {["pending", "confirmed"].includes(appointment.status) && (
-                  <div className="mt-5 flex justify-end border-t border-slate-200 pt-4 dark:border-slate-800">
+                  <div className="flex justify-end border-t border-slate-200 px-4 py-3 dark:border-slate-800">
                     <button
                       type="button"
                       onClick={() => cancelAppointment(appointment._id)}
                       disabled={cancelId === appointment._id}
-                      className="h-10 rounded-md bg-rose-600 px-4 text-sm font-black text-white transition hover:bg-rose-700 disabled:opacity-60 dark:bg-rose-500 dark:hover:bg-rose-400"
+                      className="h-9 rounded-md bg-rose-600 px-4 text-sm font-black text-white transition hover:bg-rose-700 disabled:opacity-60 dark:bg-rose-500 dark:hover:bg-rose-400"
                     >
                       {cancelId === appointment._id ? "Cancelling..." : "Cancel Booking"}
                     </button>
@@ -572,7 +627,7 @@ const UserDashboard = () => {
 
             {visibleAppointments.length === 0 && (
               <div className="rounded-lg border border-dashed border-slate-300 p-8 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                {searchText ? "No appointments match your search." : "No appointments booked yet."}
+                {searchText || historyDate || historyStatusFilter !== "all" ? "No appointments match this history view." : "No appointments booked yet."}
               </div>
             )}
           </section>
@@ -674,11 +729,18 @@ const UserDashboard = () => {
   );
 };
 
-const InfoBox = ({ label, value }) => {
+const InfoBox = ({ label, value, icon: Icon }) => {
   return (
-    <div className="rounded-md bg-slate-50 p-3 dark:bg-slate-950">
-      <p className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">{label}</p>
-      <p className="mt-1 font-black text-slate-950 dark:text-white">{value}</p>
+    <div className="flex items-center gap-3 rounded-md bg-slate-50 p-3 dark:bg-slate-950">
+      {Icon && (
+        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white text-slate-500 dark:bg-slate-900 dark:text-slate-300">
+          <Icon className="!h-4 !w-4" aria-hidden="true" />
+        </span>
+      )}
+      <div className="min-w-0">
+        <p className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">{label}</p>
+        <p className="mt-0.5 truncate font-black text-slate-950 dark:text-white">{value}</p>
+      </div>
     </div>
   );
 };

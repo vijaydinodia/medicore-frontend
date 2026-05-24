@@ -1,5 +1,21 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import ArchiveRoundedIcon from "@mui/icons-material/ArchiveRounded";
+import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
+import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import GridViewRoundedIcon from "@mui/icons-material/GridViewRounded";
+import LocalHospitalRoundedIcon from "@mui/icons-material/LocalHospitalRounded";
+import MedicalServicesRoundedIcon from "@mui/icons-material/MedicalServicesRounded";
+import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
+import PersonAddAltRoundedIcon from "@mui/icons-material/PersonAddAltRounded";
+import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
+import RestoreRoundedIcon from "@mui/icons-material/RestoreRounded";
+import ScienceRoundedIcon from "@mui/icons-material/ScienceRounded";
+import TodayRoundedIcon from "@mui/icons-material/TodayRounded";
+import MonitorHeartRoundedIcon from "@mui/icons-material/MonitorHeartRounded";
 import axiosInstance from "../api";
 import AddDepartment from "../components/AddDepartment";
 import AddDoctor from "../components/AddDoctor";
@@ -9,26 +25,31 @@ import AddTest from "../components/AddTest";
 import SearchInput from "../components/SearchInput";
 import { UseAuth } from "../custom_hook/useAuth";
 
-const paths = {
-  department: "M4 5h16M4 12h16M4 19h16",
-  subDepartment: "M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z",
-  doctor: "M12 14a5 5 0 100-10 5 5 0 000 10zM4 21a8 8 0 0116 0M19 8h3M20.5 6.5v3",
-  lab: "M9 3h6M10 3v5l-5 9a3 3 0 002.6 4.5h8.8A3 3 0 0019 17l-5-9V3M8 14h8",
-  test: "M9 3h6M10 3v5l-5 9a3 3 0 002.6 4.5h8.8A3 3 0 0019 17l-5-9V3M8 14h8",
-  refresh: "M4 4v6h6M20 20v-6h-6M5 15a7 7 0 0012 3M19 9A7 7 0 007 6",
-  close: "M6 18L18 6M6 6l12 12",
-  hospital: "M4 20V7l8-4 8 4v13M8 20v-8h8v8M3 20h18",
-  activity: "M22 12h-4l-3 8-6-16-3 8H2",
-  edit: "M16.862 4.487l1.651-1.65a2.121 2.121 0 113 3l-9.193 9.193-4 1 1-1 9.193-9.193z",
-  archive: "M3 7h18M5 7l1 13h12l1-13M9 11h6",
-  restore: "M4 4v6h6M20 20v-6h-6M5 15a7 7 0 0012 3M19 9A7 7 0 007 6",
-  trash: "M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v5M14 11v5",
+const icons = {
+  department: MenuRoundedIcon,
+  subDepartment: GridViewRoundedIcon,
+  doctor: PersonAddAltRoundedIcon,
+  lab: ScienceRoundedIcon,
+  test: ScienceRoundedIcon,
+  refresh: AutorenewRoundedIcon,
+  close: CloseRoundedIcon,
+  hospital: LocalHospitalRoundedIcon,
+  activity: MonitorHeartRoundedIcon,
+  edit: EditRoundedIcon,
+  archive: ArchiveRoundedIcon,
+  restore: RestoreRoundedIcon,
+  trash: DeleteRoundedIcon,
+  calendar: CalendarMonthRoundedIcon,
+  today: TodayRoundedIcon,
+  reset: RestartAltRoundedIcon,
+  medical: MedicalServicesRoundedIcon,
 };
 
 const Icon = ({ name, className = "h-5 w-5" }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-    <path strokeLinecap="round" strokeLinejoin="round" d={paths[name]} />
-  </svg>
+  icons[name] ? (() => {
+    const Component = icons[name];
+    return <Component className={className} aria-hidden="true" />;
+  })() : null
 );
 
 const Pill = ({ children, tone = "neutral" }) => {
@@ -42,12 +63,13 @@ const Pill = ({ children, tone = "neutral" }) => {
   return <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${tones[tone]}`}>{children}</span>;
 };
 
-const StatCard = ({ label, value, icon }) => (
-  <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+const StatCard = ({ label, value, icon, helper }) => (
+  <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:border-teal-100 hover:shadow-md dark:border-slate-800 dark:bg-slate-950 dark:hover:border-teal-900">
     <div className="flex items-start justify-between gap-4">
       <div>
         <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</p>
         <p className="mt-2 text-3xl font-black text-slate-950 dark:text-white">{value}</p>
+        {helper && <p className="mt-1 text-xs font-semibold text-slate-400 dark:text-slate-500">{helper}</p>}
       </div>
       <span className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-200">
         <Icon name={icon} />
@@ -65,11 +87,13 @@ const ActionButton = ({ icon, children, variant = "primary", ...props }) => {
   return (
     <button
       type="button"
-      className={`inline-flex h-11 items-center justify-center gap-2 rounded-md border px-4 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]}`}
+      aria-label={typeof children === "string" ? children : props.title}
+      title={typeof children === "string" ? children : props.title}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-md border transition disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]}`}
       {...props}
     >
       <Icon name={icon} className="h-4 w-4" />
-      <span>{children}</span>
+      <span className="sr-only">{children}</span>
     </button>
   );
 };
@@ -87,7 +111,7 @@ const IconButton = ({ icon, label, tone = "neutral", ...props }) => {
       type="button"
       aria-label={label}
       title={label}
-      className={`inline-flex h-10 w-10 items-center justify-center rounded-md border transition disabled:opacity-50 ${colors[tone]}`}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-md border transition disabled:opacity-50 ${colors[tone]}`}
       {...props}
     >
       <Icon name={icon} className="h-4 w-4" />
@@ -114,7 +138,18 @@ const Modal = ({ title, subtitle, onClose, children }) => (
 
 const getRecordId = (value) => value?._id || value || "";
 const getDoctorImage = (doctor) => doctor.profileImage || doctor.doctorImage?.profileImage || "";
-const getToday = () => new Date().toISOString().slice(0, 10);
+const getToday = () => {
+  const today = new Date();
+  const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 10);
+};
+const formatSelectedDate = (dateValue) =>
+  new Date(`${dateValue}T00:00:00`).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 const reportTabs = [
   { id: "overview", label: "Overview" },
   { id: "labs-tests", label: "Labs & Tests" },
@@ -198,7 +233,7 @@ const HospitalDashborad = () => {
       const doctorRes = await axiosInstance.get("/doctor/getAllDoctors");
       const labRes = await axiosInstance.get("/lab/getAllLabs");
       const testRes = await axiosInstance.get("/test/getAllTests?includeDeleted=true");
-      const patientStatsRes = await axiosInstance.get(`/appointment/hospitalStats?date=${statsDate}`);
+      const patientStatsRes = await axiosInstance.get(`/appointment/hospitalStats?date=${encodeURIComponent(statsDate || getToday())}`);
 
       setDepartments(departmentRes.data.data || []);
       setSubDepartments(subDepartmentRes.data.data || []);
@@ -280,6 +315,16 @@ const HospitalDashborad = () => {
   };
   const isPatientTab = activeReportTab === "today-patients" || activeReportTab === "doctor-attendance";
   const isSetupTab = activeReportTab === "overview" || activeReportTab === "labs-tests";
+  const currentDate = getToday();
+  const isCurrentDate = statsDate === currentDate;
+  const selectedDateLabel = formatSelectedDate(statsDate || currentDate);
+  const addActionItems = [
+    { id: "department", label: "Add department", icon: "department", disabled: false, title: "Add department" },
+    { id: "subDepartment", label: "Add subdepartment", icon: "subDepartment", disabled: !canAddNestedRecords, title: !canAddNestedRecords ? "Add a department first" : "Add subdepartment" },
+    { id: "doctor", label: "Add doctor", icon: "doctor", disabled: !canAddNestedRecords, title: !canAddNestedRecords ? "Add a department first" : "Add doctor" },
+    { id: "lab", label: "Add lab", icon: "lab", disabled: false, title: "Add lab" },
+    { id: "test", label: "Add test", icon: "test", disabled: !canAddTest, title: !canAddTest ? "Add a lab first" : "Add test" },
+  ];
   const patientSearch = patientSearchTerm.trim().toLowerCase();
   const visiblePatientAppointments = (patientStats.appointments || [])
     .filter((appointment) => {
@@ -332,12 +377,31 @@ const HospitalDashborad = () => {
     setPatientSortKey(key);
     setPatientSortDirection("asc");
   };
+  const resetPatientFilters = () => {
+    setStatsDate(getToday());
+    setPatientStatusFilter("all");
+    setPatientSearchTerm("");
+    setPatientSortKey("timeSlot");
+    setPatientSortDirection("asc");
+  };
+  const sortButtonClass = (key) =>
+    `inline-flex h-9 w-9 items-center justify-center rounded-md border transition ${
+      patientSortKey === key
+        ? "border-teal-500 bg-teal-500 text-slate-950 shadow-sm shadow-teal-900/10"
+        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
+    }`;
+  const sortIcon = {
+    timeSlot: "calendar",
+    patient: "hospital",
+    doctor: "doctor",
+    status: "activity",
+  };
 
   return (
     <main className="min-h-[calc(100svh-73px)] bg-slate-50 text-left dark:bg-slate-950">
-      <aside className="fixed bottom-0 left-0 top-[73px] z-20 hidden w-72 border-r border-slate-200 bg-white px-5 py-6 shadow-sm dark:border-slate-800 dark:bg-slate-950 lg:flex lg:flex-col">
+      <aside className="fixed bottom-0 left-0 top-[73px] z-20 hidden w-72 border-r border-slate-200 bg-white px-4 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-950 lg:flex lg:flex-col">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-teal-700 text-white dark:bg-teal-500 dark:text-slate-950">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-700 text-white dark:bg-teal-500 dark:text-slate-950">
             <Icon name="hospital" />
           </div>
           <div className="min-w-0">
@@ -346,23 +410,49 @@ const HospitalDashborad = () => {
           </div>
         </div>
 
-        <nav className="mt-8 space-y-2">
+        <nav className="mt-6 space-y-2">
           {workspaceNavItems.map((item) => (
             <button
               key={item.id}
               type="button"
               onClick={() => openReportTab(item.id)}
-              className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-bold transition ${
+              aria-label={item.label}
+              title={item.label}
+              className={`flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-bold transition ${
                 activeReportTab === item.id
                   ? "bg-teal-700 text-white shadow-lg shadow-teal-900/10 dark:bg-teal-500 dark:text-slate-950"
                   : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
               }`}
             >
               <Icon name={item.icon} className="h-5 w-5" />
-              <span>{item.label}</span>
+              <span className="truncate">{item.label}</span>
             </button>
           ))}
         </nav>
+
+        <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900">
+          <p className="px-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Quick add</p>
+          <div className="mt-3 space-y-2">
+            {addActionItems.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setActiveForm(item.id)}
+                disabled={item.disabled}
+                title={item.title}
+                aria-label={item.label}
+                className={`flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-45 ${
+                  item.id === "department"
+                    ? "bg-teal-700 text-white shadow-sm shadow-teal-900/10 hover:bg-teal-800 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
+                    : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
+                }`}
+              >
+                <Icon name={item.icon} className="h-5 w-5" />
+                <span className="truncate">{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="mt-auto rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Live counts</p>
@@ -389,81 +479,91 @@ const HospitalDashborad = () => {
 
       <section className="lg:pl-72">
         <header className="sticky top-[73px] z-20 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
-          <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 xl:px-8">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-3 sm:px-6 xl:px-8">
+            <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-300">Hospital workspace</p>
-                <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-white">Hospital Dashboard</h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 dark:text-white">Hospital Dashboard</h1>
+                <p className="mt-1 max-w-2xl text-sm leading-5 text-slate-600 dark:text-slate-300">
                   Manage departments, subdepartments, doctors, and daily hospital setup from one focused workspace.
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <ActionButton icon="department" onClick={() => setActiveForm("department")}>Add department</ActionButton>
-                <ActionButton icon="subDepartment" onClick={() => setActiveForm("subDepartment")} variant="neutral" disabled={!canAddNestedRecords} title={!canAddNestedRecords ? "Add a department first" : "Add subdepartment"}>
-                  Add subdepartment
-                </ActionButton>
-                <ActionButton icon="doctor" onClick={() => setActiveForm("doctor")} variant="neutral" disabled={!canAddNestedRecords} title={!canAddNestedRecords ? "Add a department first" : "Add doctor"}>
-                  Add doctor
-                </ActionButton>
-                <ActionButton icon="lab" onClick={() => setActiveForm("lab")} variant="neutral">
-                  Add lab
-                </ActionButton>
-                <ActionButton icon="test" onClick={() => setActiveForm("test")} variant="neutral" disabled={!canAddTest} title={!canAddTest ? "Add a lab first" : "Add test"}>
-                  Add test
-                </ActionButton>
-                <button type="button" onClick={loadDashboard} aria-label="Refresh dashboard" title="Refresh dashboard" className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                  <Icon name="refresh" className="h-4 w-4" />
-                </button>
-              </div>
+              <button type="button" onClick={loadDashboard} aria-label="Refresh dashboard" title="Refresh dashboard" className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                <Icon name="refresh" className="h-4 w-4" />
+              </button>
             </div>
 
-            <div className="grid gap-3 xl:grid-cols-[auto_1fr_auto_auto] xl:items-end">
-              <div className="flex gap-2 overflow-x-auto">
+            <div className="grid gap-3 xl:grid-cols-[minmax(280px,1fr)_auto] xl:items-center">
+              <div className={`grid gap-3 ${isPatientTab ? "md:grid-cols-[minmax(240px,1fr)_170px] xl:grid-cols-[minmax(260px,1fr)_170px]" : ""}`}>
+                <SearchInput
+                  value={isSetupTab ? searchTerm : patientSearchTerm}
+                  onChange={isSetupTab ? setSearchTerm : setPatientSearchTerm}
+                  placeholder={isSetupTab ? "Search departments, doctors, labs, tests" : "Search patients or doctors"}
+                  className="w-full"
+                />
+                {isPatientTab && (
+                  <select
+                    value={patientStatusFilter}
+                    onChange={(event) => setPatientStatusFilter(event.target.value)}
+                    className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                  >
+                    <option value="all">All status</option>
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="reached">Reached</option>
+                  </select>
+                )}
+              </div>
+
+              {isPatientTab && (
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center xl:justify-end">
+                  <label className="relative block min-w-[190px]">
+                    <span className="sr-only">Patient stats date</span>
+                    <Icon name="calendar" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="date"
+                      value={statsDate}
+                      onChange={(event) => setStatsDate(event.target.value || getToday())}
+                      max="9999-12-31"
+                      className="h-9 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm font-semibold text-slate-950 outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-teal-950"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setStatsDate(getToday())}
+                    disabled={isCurrentDate}
+                    aria-label="Today"
+                    title="Today"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
+                  >
+                    <Icon name="today" className="h-4 w-4" />
+                    <span className="sr-only">Today</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
                 {workspaceNavItems.map((tab) => (
                   <button
                     key={tab.id}
                     type="button"
                     onClick={() => openReportTab(tab.id)}
-                    className={`inline-flex h-11 items-center gap-2 rounded-md px-4 text-sm font-black transition ${
+                    aria-label={tab.label}
+                    title={tab.label}
+                    className={`inline-flex h-9 w-9 items-center justify-center rounded-md transition ${
                       activeReportTab === tab.id
                         ? "bg-teal-700 text-white shadow-sm dark:bg-teal-400 dark:text-slate-950"
                         : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
                     }`}
                   >
                     <Icon name={tab.icon} className="h-4 w-4" />
-                    {tab.label}
+                    <span className="sr-only">{tab.label}</span>
                   </button>
                 ))}
-              </div>
-              <SearchInput
-                value={isSetupTab ? searchTerm : patientSearchTerm}
-                onChange={isSetupTab ? setSearchTerm : setPatientSearchTerm}
-                placeholder={isSetupTab ? "Search departments, doctors, labs, tests" : "Search patients or doctors"}
-                className="w-full"
-              />
-              {isPatientTab && (
-                <select
-                  value={patientStatusFilter}
-                  onChange={(event) => setPatientStatusFilter(event.target.value)}
-                  className="h-11 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                >
-                  <option value="all">All status</option>
-                  <option value="pending">Pending</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                  <option value="reached">Reached</option>
-                </select>
-              )}
-              <input
-                type="date"
-                value={statsDate}
-                onChange={(event) => setStatsDate(event.target.value)}
-                className={`h-11 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-teal-950 ${isPatientTab ? "" : "hidden"}`}
-                aria-label="Patient stats date"
-              />
             </div>
           </div>
         </header>
@@ -724,19 +824,64 @@ const HospitalDashborad = () => {
 
         {isPatientTab && (
           <>
-            <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <StatCard label="Patients today" value={patientStats.todayPatients || 0} icon="activity" />
-              <StatCard label="Patients reached" value={patientStats.reachedPatients || 0} icon="activity" />
-              <StatCard label="Completed visits" value={patientStats.completedPatients || 0} icon="activity" />
-              <StatCard label="Doctors attended" value={patientStats.doctorsAttended || 0} icon="doctor" />
+            <section className="mt-6 rounded-lg border border-teal-100 bg-teal-50/70 p-5 shadow-sm dark:border-teal-900/70 dark:bg-teal-950/20">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-start gap-3">
+                  <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-teal-600 text-white dark:bg-teal-400 dark:text-slate-950">
+                    <Icon name="calendar" className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-teal-700 dark:text-teal-200">
+                      {isCurrentDate ? "Viewing today" : "Viewing selected date"}
+                    </p>
+                    <h2 className="mt-1 text-xl font-black text-slate-950 dark:text-white">{selectedDateLabel}</h2>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                      Patient counts, attendance, and doctor stats are filtered for this calendar date.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={resetPatientFilters}
+                  aria-label="Reset filters"
+                  title="Reset filters"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-teal-200 bg-white text-teal-800 transition hover:bg-teal-50 dark:border-teal-800 dark:bg-slate-950 dark:text-teal-200 dark:hover:bg-teal-950/40"
+                >
+                  <Icon name="reset" className="h-4 w-4" />
+                  <span className="sr-only">Reset filters</span>
+                </button>
+              </div>
             </section>
 
-            <section className="mt-6 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
-              <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => changePatientSort("timeSlot")} className="h-11 rounded-md border border-slate-200 px-3 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200">Time</button>
-                <button type="button" onClick={() => changePatientSort("patient")} className="h-11 rounded-md border border-slate-200 px-3 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200">Patient</button>
-                <button type="button" onClick={() => changePatientSort("doctor")} className="h-11 rounded-md border border-slate-200 px-3 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200">Doctor</button>
-                <button type="button" onClick={() => changePatientSort("status")} className="h-11 rounded-md border border-slate-200 px-3 text-sm font-black text-slate-700 dark:border-slate-700 dark:text-slate-200">Status</button>
+            <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <StatCard label={isCurrentDate ? "Patients today" : "Patients booked"} value={patientStats.todayPatients || 0} icon="activity" helper={selectedDateLabel} />
+              <StatCard label="Patients reached" value={patientStats.reachedPatients || 0} icon="activity" helper="Marked by doctors" />
+              <StatCard label="Completed visits" value={patientStats.completedPatients || 0} icon="activity" helper="Medicine/report completed" />
+              <StatCard label="Doctors attended" value={patientStats.doctorsAttended || 0} icon="medical" helper="With reached patients" />
+            </section>
+
+            <section className="mt-6 rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-sm font-black text-slate-950 dark:text-white">Sort patient view</p>
+                  <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                    {patientSortDirection === "asc" ? "Ascending" : "Descending"} by {patientSortKey === "timeSlot" ? "time" : patientSortKey}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {["timeSlot", "patient", "doctor", "status"].map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => changePatientSort(key)}
+                      className={sortButtonClass(key)}
+                      aria-label={`Sort by ${key === "timeSlot" ? "time" : key}`}
+                      title={`Sort by ${key === "timeSlot" ? "time" : key}`}
+                    >
+                      <Icon name={sortIcon[key]} className="h-4 w-4" />
+                    </button>
+                  ))}
+                </div>
               </div>
             </section>
 
@@ -766,8 +911,13 @@ const HospitalDashborad = () => {
 
               {activeReportTab === "today-patients" && (
                 <div id="today-patients" className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-                  <h2 className="text-xl font-black text-slate-950 dark:text-white">Today patient list</h2>
-                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Booked patients and attendance status for the selected day.</p>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h2 className="text-xl font-black text-slate-950 dark:text-white">{isCurrentDate ? "Today patient list" : "Patient list"}</h2>
+                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Booked patients and attendance status for {selectedDateLabel}.</p>
+                    </div>
+                    <Pill tone="neutral">{visiblePatientAppointments.length} visible</Pill>
+                  </div>
                   <div className="mt-5 space-y-3">
                     {visiblePatientAppointments.slice(0, 8).map((appointment) => (
                       <div key={appointment._id} className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900 md:grid-cols-[1fr_1fr_auto] md:items-center">
@@ -783,8 +933,10 @@ const HospitalDashborad = () => {
                       </div>
                     ))}
                     {!loading && visiblePatientAppointments.length === 0 && (
-                      <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                        No patients booked for this day.
+                      <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center dark:border-slate-700 dark:bg-slate-900/50">
+                        <Icon name="calendar" className="mx-auto h-8 w-8 text-slate-400" />
+                        <p className="mt-3 text-sm font-bold text-slate-700 dark:text-slate-200">No patients booked for {selectedDateLabel}.</p>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Change the date, status, or search text to check another view.</p>
                       </div>
                     )}
                   </div>
