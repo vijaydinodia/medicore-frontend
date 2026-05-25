@@ -147,9 +147,10 @@ const DoctorDashboard = () => {
         { label: "Confirmed", value: confirmedCount },
         { label: "Cancelled", value: cancelledCount },
       ],
-      rows: visibleAppointments.map((appointment) =>
-        `${appointment.timeSlot || "-"} | ${appointment.userId?.name || "Patient"} | ${appointment.status || "pending"} | Reached: ${appointment.isReached ? "Yes" : "No"}`,
-      ),
+      rows: visibleAppointments.map((appointment) => ({
+        date: appointment.date || selectedDate,
+        text: `${appointment.timeSlot || "-"} | ${appointment.userId?.name || "Patient"} | ${appointment.status || "pending"} | Reached: ${appointment.isReached ? "Yes" : "No"}`,
+      })),
     },
   ];
 

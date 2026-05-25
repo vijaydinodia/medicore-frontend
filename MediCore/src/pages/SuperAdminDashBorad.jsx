@@ -268,7 +268,10 @@ const SuperAdminDashBorad = () => {
         { label: "Rejected", value: stats.rejected },
         { label: "Inactive", value: stats.inactive },
       ],
-      rows: hospitals.map((hospital) => `${hospital.hospitalName || "Hospital"} | ${hospital.hospitalCode || "-"} | ${hospital.status || "-"} | Active: ${hospital.isActive === false ? "No" : "Yes"}`),
+      rows: hospitals.map((hospital) => ({
+        date: hospital.createdAt || hospital.updatedAt,
+        text: `${hospital.hospitalName || "Hospital"} | ${hospital.hospitalCode || "-"} | ${hospital.status || "-"} | Active: ${hospital.isActive === false ? "No" : "Yes"}`,
+      })),
     },
   ];
 

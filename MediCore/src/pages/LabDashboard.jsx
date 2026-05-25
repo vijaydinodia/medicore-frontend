@@ -218,7 +218,10 @@ const LabDashboard = () => {
         { label: "Inactive Tests", value: inactiveTests },
         { label: "Deleted Tests", value: deletedTests },
       ],
-      rows: tests.map((test) => `${test.testName} | ${test.testCode || "-"} | Rs. ${test.amount || 0} | ${test.isDeleted ? "deleted" : test.status}`),
+      rows: tests.map((test) => ({
+        date: test.createdAt || test.updatedAt,
+        text: `${test.testName} | ${test.testCode || "-"} | Rs. ${test.amount || 0} | ${test.isDeleted ? "deleted" : test.status}`,
+      })),
     },
     {
       id: "lab-patients",
@@ -230,7 +233,10 @@ const LabDashboard = () => {
         { label: "Pending Tests", value: pendingPatientTests },
         { label: "Completed Tests", value: completedPatientTests },
       ],
-      rows: testPatients.map((item) => `${item.appointment?.userId?.name || "Patient"} | ${item.appointment?.doctorId?.doctorName || "Doctor"} | ${(item.tests || []).length} test(s)`),
+      rows: testPatients.map((item) => ({
+        date: item.appointment?.date || item.createdAt || item.updatedAt,
+        text: `${item.appointment?.userId?.name || "Patient"} | ${item.appointment?.doctorId?.doctorName || "Doctor"} | ${(item.tests || []).length} test(s)`,
+      })),
     },
   ];
 

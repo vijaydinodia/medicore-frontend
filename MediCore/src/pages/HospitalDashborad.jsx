@@ -419,7 +419,10 @@ const HospitalDashborad = () => {
         { label: "Labs", value: visibleLabs.length },
         { label: "Tests", value: visibleTests.length },
       ],
-      rows: visibleDoctors.map((doctor) => `${doctor.doctorName} | ${doctor.specialization || "-"} | ${doctor.status || "-"}`),
+      rows: visibleDoctors.map((doctor) => ({
+        date: doctor.createdAt || doctor.updatedAt,
+        text: `${doctor.doctorName} | ${doctor.specialization || "-"} | ${doctor.status || "-"}`,
+      })),
     },
     {
       id: "hospital-labs-tests",
@@ -432,7 +435,10 @@ const HospitalDashborad = () => {
         { label: "Active Tests", value: activeTestCount },
         { label: "Deleted Tests", value: deletedTestCount },
       ],
-      rows: visibleTests.map((test) => `${test.testName} | ${test.labId?.labName || "Lab"} | Rs. ${test.amount || 0} | ${test.isDeleted ? "deleted" : test.status}`),
+      rows: visibleTests.map((test) => ({
+        date: test.createdAt || test.updatedAt,
+        text: `${test.testName} | ${test.labId?.labName || "Lab"} | Rs. ${test.amount || 0} | ${test.isDeleted ? "deleted" : test.status}`,
+      })),
     },
     {
       id: "hospital-patients",
@@ -445,7 +451,10 @@ const HospitalDashborad = () => {
         { label: "Completed Visits", value: patientStats.completedPatients || 0 },
         { label: "Doctors Attended", value: patientStats.doctorsAttended || 0 },
       ],
-      rows: visiblePatientAppointments.map((appointment) => `${appointment.timeSlot || "-"} | ${appointment.userId?.name || "Patient"} | ${appointment.doctorId?.doctorName || "Doctor"} | ${appointment.isReached ? "Reached" : appointment.status}`),
+      rows: visiblePatientAppointments.map((appointment) => ({
+        date: appointment.date || statsDate,
+        text: `${appointment.timeSlot || "-"} | ${appointment.userId?.name || "Patient"} | ${appointment.doctorId?.doctorName || "Doctor"} | ${appointment.isReached ? "Reached" : appointment.status}`,
+      })),
     },
     {
       id: "hospital-doctor-attendance",
@@ -456,7 +465,10 @@ const HospitalDashborad = () => {
         { label: "Doctors Attended", value: patientStats.doctorsAttended || 0 },
         { label: "Reached Patients", value: patientStats.reachedPatients || 0 },
       ],
-      rows: visibleDoctorStats.map((doctor) => `${doctor.doctorName} | ${doctor.specialization || "Doctor"} | ${doctor.attendedPatients} patient(s)`),
+      rows: visibleDoctorStats.map((doctor) => ({
+        date: statsDate,
+        text: `${doctor.doctorName} | ${doctor.specialization || "Doctor"} | ${doctor.attendedPatients} patient(s)`,
+      })),
     },
   ];
   const sortButtonClass = (key) =>
