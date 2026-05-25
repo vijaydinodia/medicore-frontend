@@ -43,6 +43,7 @@ const EditProfile = ({ user, onUpdated, buttonClassName = "", triggerClassName =
 
   const isDoctor = user?.role === "doctor";
 
+  const activePreviewUrl = previewUrl || user?.profileImage || "";
   const nameParts = getDisplayName(user).split(" ").filter(Boolean);
   let initials = "A";
 
@@ -151,8 +152,12 @@ const EditProfile = ({ user, onUpdated, buttonClassName = "", triggerClassName =
           >
             <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5 dark:border-slate-800">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-teal-700 text-base font-black text-white dark:bg-teal-500 dark:text-slate-950">
-                  {initials}
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md bg-teal-700 text-base font-black text-white dark:bg-teal-500 dark:text-slate-950">
+                  {activePreviewUrl ? (
+                    <img src={activePreviewUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    initials
+                  )}
                 </div>
                 <div className="min-w-0">
                   <h2 className="text-xl font-black text-slate-950 dark:text-white">Edit profile</h2>
@@ -206,9 +211,9 @@ const EditProfile = ({ user, onUpdated, buttonClassName = "", triggerClassName =
                 </Field>
               </div>
 
-              {previewUrl && (
+              {activePreviewUrl && (
                 <div className="flex items-center gap-3 rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950">
-                  <img src={previewUrl} alt="Profile preview" className="h-14 w-14 rounded-md object-cover" />
+                  <img src={activePreviewUrl} alt="Profile preview" className="h-14 w-14 rounded-md object-cover" />
                   <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
                     {profileImageFile?.name || "Current profile photo"}
                   </p>

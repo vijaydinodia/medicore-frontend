@@ -5,6 +5,7 @@ import EditProfile from "../components/EditProfile";
 import AddLocation from "../components/AddLocation";
 import HospitalTableView from "../components/HospitalTableView";
 import SearchInput from "../components/SearchInput";
+import StatReportsSection from "../components/StatReportsSection";
 import { UseTheme } from "../custom_hook/UseTheme";
 
 const statusTabs = [
@@ -29,6 +30,8 @@ const paths = {
   check: "M5 13l4 4L19 7",
   x: "M6 18L18 6M6 6l12 12",
   archive: "M3 7h18M5 7l1 13h12l1-13M9 11h6M4 4h16v3H4V4z",
+  report: "M9 3h6l4 4v14H5V3h4M14 3v5h5M8 13h8M8 17h6",
+  menu: "M4 6h16M4 12h16M4 18h16",
 };
 
 const Icon = ({ name, className = "h-5 w-5" }) => (
@@ -74,7 +77,7 @@ const IconButton = ({
   );
 };
 
-const StatTile = ({ label, value, icon, tone = "teal" }) => {
+const StatTile = ({ label, value, icon, tone = "teal", onClick }) => {
   const tones = {
     teal: "bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-200",
     emerald:
@@ -83,8 +86,14 @@ const StatTile = ({ label, value, icon, tone = "teal" }) => {
     slate: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
   };
 
+  const Component = onClick ? "button" : "div";
+
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+    <Component
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
+      className={`w-full rounded-lg border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-teal-200 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-teal-100 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-teal-900 dark:focus:ring-teal-950 ${onClick ? "cursor-pointer" : ""}`}
+    >
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -100,7 +109,7 @@ const StatTile = ({ label, value, icon, tone = "teal" }) => {
           <Icon name={icon} />
         </span>
       </div>
-    </div>
+    </Component>
   );
 };
 
@@ -113,6 +122,7 @@ const SuperAdminDashBorad = () => {
   const [hospitals, setHospitals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(() =>
     JSON.parse(localStorage.getItem("user") || "{}"),
   );
@@ -124,6 +134,16 @@ const SuperAdminDashBorad = () => {
     rejected: hospitals.filter((item) => item.status === "rejected").length,
     inactive: hospitals.filter((item) => item.isActive === false).length,
   };
+
+  const accountName = currentUser.name || currentUser.email || "Super Admin";
+  const accountPhoto = currentUser.profileImage || "";
+  const accountInitials =
+    accountName
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "A";
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -229,10 +249,71 @@ const SuperAdminDashBorad = () => {
   const navItems = [
     { id: "hospital", label: "Hospitals", icon: "hospital" },
     { id: "location", label: "Locations", icon: "location" },
+    { id: "reports", label: "Reports", icon: "report" },
+  ];
+  const selectMenu = (menuId) => {
+    setActiveMenu(menuId);
+    setSidebarOpen(false);
+  };
+  const statReports = [
+    {
+      id: "super-admin-hospital-governance",
+      section: "Hospitals",
+      title: "Hospital Governance Report",
+      description: "Hospital registration, approval, active, inactive, and deleted record statistics.",
+      metrics: [
+        { label: "Total", value: stats.total },
+        { label: "Pending", value: stats.pending },
+        { label: "Approved", value: stats.approved },
+        { label: "Rejected", value: stats.rejected },
+        { label: "Inactive", value: stats.inactive },
+      ],
+      rows: hospitals.map((hospital) => `${hospital.hospitalName || "Hospital"} | ${hospital.hospitalCode || "-"} | ${hospital.status || "-"} | Active: ${hospital.isActive === false ? "No" : "Yes"}`),
+    },
   ];
 
   return (
     <main className="min-h-screen bg-slate-50 text-left text-slate-950 dark:bg-slate-950 dark:text-white">
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-40 bg-slate-950/60 lg:hidden" onClick={() => setSidebarOpen(false)}>
+          <aside className="h-full w-80 max-w-[86vw] border-r border-slate-200 bg-white px-5 py-6 shadow-2xl dark:border-slate-800 dark:bg-slate-950" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-teal-700 text-white dark:bg-teal-500 dark:text-slate-950">
+                  <Icon name="hospital" />
+                </div>
+                <div>
+                  <p className="text-xl font-black tracking-tight">MediCore</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Super Admin</p>
+                </div>
+              </div>
+              <IconButton label="Close menu" icon="x" tone="neutral" onClick={() => setSidebarOpen(false)} />
+            </div>
+
+            <nav className="mt-8 space-y-2">
+              {navItems.map((item) => {
+                const active = activeMenu === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => selectMenu(item.id)}
+                    className={`flex h-12 w-full items-center gap-3 rounded-md px-4 text-sm font-bold transition ${
+                      active
+                        ? "bg-teal-700 text-white shadow-lg shadow-teal-900/10 dark:bg-teal-500 dark:text-slate-950"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
+                    }`}
+                  >
+                    <Icon name={item.icon} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </aside>
+        </div>
+      )}
+
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 border-r border-slate-200 bg-white px-5 py-6 shadow-sm dark:border-slate-800 dark:bg-slate-950 lg:flex lg:flex-col">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-teal-700 text-white dark:bg-teal-500 dark:text-slate-950">
@@ -253,7 +334,7 @@ const SuperAdminDashBorad = () => {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setActiveMenu(item.id)}
+                onClick={() => selectMenu(item.id)}
                 className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-bold transition ${
                   active
                     ? "bg-teal-700 text-white shadow-lg shadow-teal-900/10 dark:bg-teal-500 dark:text-slate-950"
@@ -280,9 +361,12 @@ const SuperAdminDashBorad = () => {
             tone="danger"
             onClick={handleLogout}
           />
-          <div className="min-w-0 pl-2">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-teal-700 text-xs font-black text-white dark:bg-teal-500 dark:text-slate-950">
+            {accountPhoto ? <img src={accountPhoto} alt="" className="h-full w-full object-cover" /> : accountInitials}
+          </div>
+          <div className="min-w-0">
             <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
-              {currentUser.name || "Super Admin"}
+              {accountName}
             </p>
             <p className="truncate text-xs text-slate-500 dark:text-slate-400">
               {currentUser.email || "System access"}
@@ -295,20 +379,35 @@ const SuperAdminDashBorad = () => {
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
           <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 xl:px-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
+              <div className="flex min-w-0 items-start gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen(true)}
+                  className="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900 lg:hidden"
+                  aria-label="Open navigation"
+                  aria-expanded={sidebarOpen}
+                >
+                  <Icon name="menu" className="h-5 w-5" />
+                </button>
+                <div className="min-w-0">
                 <p className="text-sm font-bold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-300">
                   Command center
                 </p>
                 <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-white">
                   {activeMenu === "hospital"
                     ? "Hospital Governance"
-                    : "Location Registry"}
+                    : activeMenu === "reports"
+                      ? "Reports"
+                      : "Location Registry"}
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
                   {activeMenu === "hospital"
                     ? "Review hospital registrations, approve access, and control live records."
-                    : "Create state, district, city, and location records for hospital onboarding."}
+                    : activeMenu === "reports"
+                      ? "Review all hospital, doctor, lab, and patient reports section wise."
+                      : "Create state, district, city, and location records for hospital onboarding."}
                 </p>
+                </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
@@ -328,7 +427,12 @@ const SuperAdminDashBorad = () => {
                     onClick={() => setActiveMenu("location")}
                   />
                 )}
-                <EditProfile user={currentUser} onUpdated={setCurrentUser} />
+                <div className="flex items-center gap-2">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-teal-200 bg-teal-700 text-xs font-black text-white shadow-sm dark:border-teal-400/40 dark:bg-teal-500 dark:text-slate-950">
+                    {accountPhoto ? <img src={accountPhoto} alt="" className="h-full w-full object-cover" /> : accountInitials}
+                  </div>
+                  <EditProfile user={currentUser} onUpdated={setCurrentUser} />
+                </div>
                 <div className="lg:hidden">
                   <IconButton
                     label="Logout"
@@ -346,7 +450,7 @@ const SuperAdminDashBorad = () => {
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => setActiveMenu(item.id)}
+                    onClick={() => selectMenu(item.id)}
                     className={`inline-flex h-11 items-center justify-center gap-2 rounded-md border px-3 text-sm font-bold transition ${
                       activeMenu === item.id
                         ? "border-teal-700 bg-teal-700 text-white dark:border-teal-500 dark:bg-teal-500 dark:text-slate-950"
@@ -394,33 +498,46 @@ const SuperAdminDashBorad = () => {
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 xl:px-8">
           {activeMenu === "location" && <AddLocation />}
 
+          {activeMenu === "reports" && (
+            <StatReportsSection
+              title="All Reports"
+              subtitle="Section-wise platform statistics and governance reports."
+              reports={statReports}
+              loading={loading}
+            />
+          )}
+
           {activeMenu === "hospital" && (
             <div className="space-y-6">
               <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-                <StatTile label="Total" value={stats.total} icon="hospital" />
+                <StatTile label="Total" value={stats.total} icon="hospital" onClick={() => setStatusFilter("all")} />
                 <StatTile
                   label="Pending"
                   value={stats.pending}
                   icon="users"
                   tone="slate"
+                  onClick={() => setStatusFilter("all")}
                 />
                 <StatTile
                   label="Approved"
                   value={stats.approved}
                   icon="check"
                   tone="emerald"
+                  onClick={() => setStatusFilter("all")}
                 />
                 <StatTile
                   label="Rejected"
                   value={stats.rejected}
                   icon="x"
                   tone="rose"
+                  onClick={() => setStatusFilter("all")}
                 />
                 <StatTile
                   label="Inactive"
                   value={stats.inactive}
                   icon="archive"
                   tone="slate"
+                  onClick={() => setStatusFilter("inactive")}
                 />
               </section>
 

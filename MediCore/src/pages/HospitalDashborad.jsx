@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import ArchiveRoundedIcon from "@mui/icons-material/ArchiveRounded";
+import AssignmentRoundedIcon from "@mui/icons-material/AssignmentRounded";
 import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -23,6 +24,7 @@ import AddLab from "../components/AddLab";
 import AddSubDepartment from "../components/AddSubDepartment";
 import AddTest from "../components/AddTest";
 import SearchInput from "../components/SearchInput";
+import StatReportsSection from "../components/StatReportsSection";
 import { UseAuth } from "../custom_hook/useAuth";
 
 const icons = {
@@ -37,6 +39,7 @@ const icons = {
   activity: MonitorHeartRoundedIcon,
   edit: EditRoundedIcon,
   archive: ArchiveRoundedIcon,
+  report: AssignmentRoundedIcon,
   restore: RestoreRoundedIcon,
   trash: DeleteRoundedIcon,
   calendar: CalendarMonthRoundedIcon,
@@ -63,8 +66,15 @@ const Pill = ({ children, tone = "neutral" }) => {
   return <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${tones[tone]}`}>{children}</span>;
 };
 
-const StatCard = ({ label, value, icon, helper }) => (
-  <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:border-teal-100 hover:shadow-md dark:border-slate-800 dark:bg-slate-950 dark:hover:border-teal-900">
+const StatCard = ({ label, value, icon, helper, onClick }) => {
+  const Component = onClick ? "button" : "div";
+
+  return (
+  <Component
+    type={onClick ? "button" : undefined}
+    onClick={onClick}
+    className={`w-full rounded-lg border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-teal-100 hover:shadow-md dark:border-slate-800 dark:bg-slate-950 dark:hover:border-teal-900 ${onClick ? "cursor-pointer focus:outline-none focus:ring-4 focus:ring-teal-100 dark:focus:ring-teal-950" : ""}`}
+  >
     <div className="flex items-start justify-between gap-4">
       <div>
         <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</p>
@@ -75,8 +85,9 @@ const StatCard = ({ label, value, icon, helper }) => (
         <Icon name={icon} />
       </span>
     </div>
-  </div>
+  </Component>
 );
+};
 
 const ActionButton = ({ icon, children, variant = "primary", ...props }) => {
   const variants = {
@@ -138,6 +149,7 @@ const Modal = ({ title, subtitle, onClose, children }) => (
 
 const getRecordId = (value) => value?._id || value || "";
 const getDoctorImage = (doctor) => doctor.profileImage || doctor.doctorImage?.profileImage || "";
+const getProfileImage = (user) => user?.profileImage || user?.hospitalId?.logo || "";
 const getToday = () => {
   const today = new Date();
   const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000);
@@ -155,6 +167,7 @@ const reportTabs = [
   { id: "labs-tests", label: "Labs & Tests" },
   { id: "today-patients", label: "Today Patients" },
   { id: "doctor-attendance", label: "Doctor Attendance" },
+  { id: "reports", label: "Reports" },
 ];
 
 const HospitalDashborad = () => {
@@ -163,6 +176,7 @@ const HospitalDashborad = () => {
   const { user: currentUser } = UseAuth();
   const hospitalId = getRecordId(currentUser?.hospitalId);
   const [activeForm, setActiveForm] = useState("");
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [statsDate, setStatsDate] = useState(getToday());
   const [departments, setDepartments] = useState([]);
   const [subDepartments, setSubDepartments] = useState([]);
@@ -171,6 +185,7 @@ const HospitalDashborad = () => {
   const [tests, setTests] = useState([]);
   const [editingTest, setEditingTest] = useState(null);
   const [actionId, setActionId] = useState("");
+  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [patientStats, setPatientStats] = useState({
     todayPatients: 0,
     reachedPatients: 0,
@@ -310,12 +325,16 @@ const HospitalDashborad = () => {
     { id: "labs-tests", label: "Labs & Tests", icon: "lab" },
     { id: "today-patients", label: "Today Patients", icon: "activity" },
     { id: "doctor-attendance", label: "Doctor Attendance", icon: "doctor" },
+    { id: "reports", label: "Reports", icon: "report" },
   ];
   const openReportTab = (tabId) => {
+    setWorkspaceMenuOpen(false);
     navigate(`/hospital/dashboard?tab=${tabId}`);
   };
   const isPatientTab = activeReportTab === "today-patients" || activeReportTab === "doctor-attendance";
   const isSetupTab = activeReportTab === "overview" || activeReportTab === "labs-tests";
+  const isReportsTab = activeReportTab === "reports";
+  const hospitalPhoto = getProfileImage(currentUser);
   const currentDate = getToday();
   const isCurrentDate = statsDate === currentDate;
   const selectedDateLabel = formatSelectedDate(statsDate || currentDate);
@@ -385,6 +404,61 @@ const HospitalDashborad = () => {
     setPatientSortKey("timeSlot");
     setPatientSortDirection("asc");
   };
+  const activeTestCount = visibleTests.filter((test) => !test.isDeleted && test.status === "active").length;
+  const deletedTestCount = visibleTests.filter((test) => test.isDeleted).length;
+  const hospitalStatReports = [
+    {
+      id: "hospital-overview",
+      section: "Overview",
+      title: "Hospital Setup Report",
+      description: "Department, doctor, lab, and test setup statistics.",
+      metrics: [
+        { label: "Departments", value: visibleDepartments.length },
+        { label: "Subdepartments", value: visibleSubDepartments.length },
+        { label: "Doctors", value: visibleDoctors.length },
+        { label: "Labs", value: visibleLabs.length },
+        { label: "Tests", value: visibleTests.length },
+      ],
+      rows: visibleDoctors.map((doctor) => `${doctor.doctorName} | ${doctor.specialization || "-"} | ${doctor.status || "-"}`),
+    },
+    {
+      id: "hospital-labs-tests",
+      section: "Labs & Tests",
+      title: "Labs And Tests Report",
+      description: "Lab and test catalogue status statistics.",
+      metrics: [
+        { label: "Labs", value: visibleLabs.length },
+        { label: "Tests", value: visibleTests.length },
+        { label: "Active Tests", value: activeTestCount },
+        { label: "Deleted Tests", value: deletedTestCount },
+      ],
+      rows: visibleTests.map((test) => `${test.testName} | ${test.labId?.labName || "Lab"} | Rs. ${test.amount || 0} | ${test.isDeleted ? "deleted" : test.status}`),
+    },
+    {
+      id: "hospital-patients",
+      section: "Patients",
+      title: `${isCurrentDate ? "Today" : "Selected Day"} Patient Report`,
+      description: `Patient booking and attendance statistics for ${selectedDateLabel}.`,
+      metrics: [
+        { label: "Booked Patients", value: patientStats.todayPatients || 0 },
+        { label: "Reached Patients", value: patientStats.reachedPatients || 0 },
+        { label: "Completed Visits", value: patientStats.completedPatients || 0 },
+        { label: "Doctors Attended", value: patientStats.doctorsAttended || 0 },
+      ],
+      rows: visiblePatientAppointments.map((appointment) => `${appointment.timeSlot || "-"} | ${appointment.userId?.name || "Patient"} | ${appointment.doctorId?.doctorName || "Doctor"} | ${appointment.isReached ? "Reached" : appointment.status}`),
+    },
+    {
+      id: "hospital-doctor-attendance",
+      section: "Doctor Attendance",
+      title: "Doctor Attendance Report",
+      description: `Reached patient count by doctor for ${selectedDateLabel}.`,
+      metrics: [
+        { label: "Doctors Attended", value: patientStats.doctorsAttended || 0 },
+        { label: "Reached Patients", value: patientStats.reachedPatients || 0 },
+      ],
+      rows: visibleDoctorStats.map((doctor) => `${doctor.doctorName} | ${doctor.specialization || "Doctor"} | ${doctor.attendedPatients} patient(s)`),
+    },
+  ];
   const sortButtonClass = (key) =>
     `inline-flex h-9 w-9 items-center justify-center rounded-md border transition ${
       patientSortKey === key
@@ -400,10 +474,49 @@ const HospitalDashborad = () => {
 
   return (
     <main className="min-h-[calc(100svh-73px)] bg-slate-50 text-left dark:bg-slate-950">
+      {workspaceMenuOpen && (
+        <div className="fixed inset-0 z-40 bg-slate-950/60 lg:hidden" onClick={() => setWorkspaceMenuOpen(false)}>
+          <aside className="h-full w-80 max-w-[86vw] border-r border-slate-200 bg-white px-5 py-6 shadow-2xl dark:border-slate-800 dark:bg-slate-950" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-teal-700 text-sm font-black text-white dark:bg-teal-500 dark:text-slate-950">
+                  {hospitalPhoto ? <img src={hospitalPhoto} alt="" className="h-full w-full object-cover" /> : <Icon name="hospital" />}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-lg font-black tracking-tight">{hospital.hospitalName}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Hospital Admin</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setWorkspaceMenuOpen(false)} aria-label="Close menu" className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                <Icon name="close" className="h-4 w-4" />
+              </button>
+            </div>
+
+            <nav className="mt-8 space-y-2">
+              {workspaceNavItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => openReportTab(item.id)}
+                  className={`flex h-12 w-full items-center gap-3 rounded-md px-4 text-sm font-bold transition ${
+                    activeReportTab === item.id
+                      ? "bg-teal-700 text-white shadow-lg shadow-teal-900/10 dark:bg-teal-500 dark:text-slate-950"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  <Icon name={item.icon} className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </nav>
+          </aside>
+        </div>
+      )}
+
       <aside className="fixed bottom-0 left-0 top-[73px] z-20 hidden w-72 border-r border-slate-200 bg-white px-4 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-950 lg:flex lg:flex-col">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-700 text-white dark:bg-teal-500 dark:text-slate-950">
-            <Icon name="hospital" />
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-teal-700 text-sm font-black text-white dark:bg-teal-500 dark:text-slate-950">
+            {hospitalPhoto ? <img src={hospitalPhoto} alt="" className="h-full w-full object-cover" /> : <Icon name="hospital" />}
           </div>
           <div className="min-w-0">
             <p className="truncate text-lg font-black tracking-tight">{hospital.hospitalName}</p>
@@ -432,20 +545,33 @@ const HospitalDashborad = () => {
         </nav>
 
         <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900">
-          <p className="px-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Quick add</p>
+          <button
+            type="button"
+            onClick={() => setAddMenuOpen((open) => !open)}
+            aria-expanded={addMenuOpen}
+            className="flex h-10 w-full items-center justify-between rounded-md bg-teal-700 px-3 text-sm font-black text-white shadow-sm shadow-teal-900/10 transition hover:bg-teal-800 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
+          >
+            <span className="inline-flex items-center gap-3">
+              <Icon name="department" className="h-5 w-5" />
+              Add
+            </span>
+            <span className="text-lg leading-none">{addMenuOpen ? "-" : "+"}</span>
+          </button>
+          {addMenuOpen && (
           <div className="mt-3 space-y-2">
             {addActionItems.map((item) => (
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setActiveForm(item.id)}
+                onClick={() => {
+                  setActiveForm(item.id);
+                  setAddMenuOpen(false);
+                }}
                 disabled={item.disabled}
                 title={item.title}
                 aria-label={item.label}
                 className={`flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-45 ${
-                  item.id === "department"
-                    ? "bg-teal-700 text-white shadow-sm shadow-teal-900/10 hover:bg-teal-800 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
-                    : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
+                  "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
                 }`}
               >
                 <Icon name={item.icon} className="h-5 w-5" />
@@ -453,6 +579,7 @@ const HospitalDashborad = () => {
               </button>
             ))}
           </div>
+          )}
         </div>
 
         <div className="mt-auto rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
@@ -482,12 +609,23 @@ const HospitalDashborad = () => {
         <header className="sticky top-[73px] z-20 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
           <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-3 sm:px-6 xl:px-8">
             <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-              <div>
+              <div className="flex min-w-0 items-start gap-3">
+                <button
+                  type="button"
+                  onClick={() => setWorkspaceMenuOpen(true)}
+                  className="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900 lg:hidden"
+                  aria-label="Open workspace navigation"
+                  aria-expanded={workspaceMenuOpen}
+                >
+                  <Icon name="menu" className="h-5 w-5" />
+                </button>
+                <div className="min-w-0">
                 <p className="text-sm font-bold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-300">Hospital workspace</p>
                 <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 dark:text-white">Hospital Dashboard</h1>
                 <p className="mt-1 max-w-2xl text-sm leading-5 text-slate-600 dark:text-slate-300">
                   Manage departments, subdepartments, doctors, and daily hospital setup from one focused workspace.
                 </p>
+                </div>
               </div>
 
               <button type="button" onClick={loadDashboard} aria-label="Refresh dashboard" title="Refresh dashboard" className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
@@ -500,7 +638,7 @@ const HospitalDashborad = () => {
                 <SearchInput
                   value={isSetupTab ? searchTerm : patientSearchTerm}
                   onChange={isSetupTab ? setSearchTerm : setPatientSearchTerm}
-                  placeholder={isSetupTab ? "Search departments, doctors, labs, tests" : "Search patients or doctors"}
+                  placeholder={isReportsTab ? "Search reports, patients, doctors, labs" : isSetupTab ? "Search departments, doctors, labs, tests" : "Search patients or doctors"}
                   className="w-full"
                 />
                 {isPatientTab && (
@@ -547,7 +685,7 @@ const HospitalDashborad = () => {
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="hidden flex-wrap gap-2 sm:flex lg:hidden">
                 {workspaceNavItems.map((tab) => (
                   <button
                     key={tab.id}
@@ -580,10 +718,10 @@ const HospitalDashborad = () => {
         {activeReportTab === "overview" && (
           <>
             <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <StatCard label="Departments" value={visibleDepartments.length} icon="department" />
-              <StatCard label="Subdepartments" value={visibleSubDepartments.length} icon="subDepartment" />
-              <StatCard label="Doctors" value={visibleDoctors.length} icon="doctor" />
-              <StatCard label="Labs" value={visibleLabs.length} icon="lab" />
+              <StatCard label="Departments" value={visibleDepartments.length} icon="department" onClick={() => openReportTab("overview")} />
+              <StatCard label="Subdepartments" value={visibleSubDepartments.length} icon="subDepartment" onClick={() => openReportTab("overview")} />
+              <StatCard label="Doctors" value={visibleDoctors.length} icon="doctor" onClick={() => openReportTab("overview")} />
+              <StatCard label="Labs" value={visibleLabs.length} icon="lab" onClick={() => openReportTab("labs-tests")} />
             </section>
 
             <section className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
@@ -598,10 +736,10 @@ const HospitalDashborad = () => {
 
                 <div className="mt-6 grid gap-3 md:grid-cols-3">
                   {visibleDepartments.slice(0, 6).map((department) => (
-                    <div key={department._id} className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
+                    <button key={department._id} type="button" onClick={() => setActiveForm("subDepartment")} className="w-full rounded-lg border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-teal-300 hover:shadow-sm focus:outline-none focus:ring-4 focus:ring-teal-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-teal-700 dark:focus:ring-teal-950">
                       <p className="font-bold text-slate-950 dark:text-white">{department.departmentName}</p>
                       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{department.departmentCode}</p>
-                    </div>
+                    </button>
                   ))}
                   {!loading && visibleDepartments.length === 0 && (
                     <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400 md:col-span-3">
@@ -614,10 +752,10 @@ const HospitalDashborad = () => {
                   <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Subdepartments</h3>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
                     {visibleSubDepartments.slice(0, 4).map((subDepartment) => (
-                      <div key={subDepartment._id} className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
+                      <button key={subDepartment._id} type="button" onClick={() => setActiveForm("doctor")} className="w-full rounded-lg border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-teal-300 hover:shadow-sm focus:outline-none focus:ring-4 focus:ring-teal-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-teal-700 dark:focus:ring-teal-950">
                         <p className="font-bold text-slate-950 dark:text-white">{subDepartment.subDepartmentName}</p>
                         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{subDepartment.subDepartmentCode}</p>
-                      </div>
+                      </button>
                     ))}
                     {!loading && visibleSubDepartments.length === 0 && (
                       <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400 md:col-span-2">
@@ -632,7 +770,7 @@ const HospitalDashborad = () => {
                 <h2 className="text-xl font-black text-slate-950 dark:text-white">Doctors roster</h2>
                 <div className="mt-5 space-y-3">
                   {visibleDoctors.slice(0, 5).map((doctor) => (
-                    <div key={doctor._id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+                    <button key={doctor._id} type="button" onClick={() => openReportTab("doctor-attendance")} className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-left transition hover:border-teal-300 hover:shadow-sm focus:outline-none focus:ring-4 focus:ring-teal-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-teal-700 dark:focus:ring-teal-950">
                       <div className="flex min-w-0 items-center gap-3">
                         <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md bg-teal-700 text-sm font-black text-white dark:bg-teal-500 dark:text-slate-950">
                           {getDoctorImage(doctor) ? (
@@ -647,7 +785,7 @@ const HospitalDashborad = () => {
                         </div>
                       </div>
                       <Pill tone={doctor.status === "active" ? "success" : "warning"}>{doctor.status}</Pill>
-                    </div>
+                    </button>
                   ))}
                   {!loading && visibleDoctors.length === 0 && (
                     <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
@@ -663,7 +801,7 @@ const HospitalDashborad = () => {
                   </div>
                   <div className="mt-5 space-y-3">
                     {visibleLabs.slice(0, 5).map((lab) => (
-                      <div key={lab._id} className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+                      <button key={lab._id} type="button" onClick={() => openReportTab("labs-tests")} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-left transition hover:border-teal-300 hover:shadow-sm focus:outline-none focus:ring-4 focus:ring-teal-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-teal-700 dark:focus:ring-teal-950">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="truncate font-bold text-slate-950 dark:text-white">{lab.labName}</p>
@@ -675,7 +813,7 @@ const HospitalDashborad = () => {
                           <span>{lab.labCode}</span>
                           <span>{lab.cityId?.cityName || "City"}</span>
                         </div>
-                      </div>
+                      </button>
                     ))}
                     {!loading && visibleLabs.length === 0 && (
                       <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
@@ -692,7 +830,16 @@ const HospitalDashborad = () => {
                   </div>
                   <div className="mt-5 space-y-3">
                     {visibleTests.slice(0, 8).map((test) => (
-                      <div key={test._id} className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+                      <div
+                        key={test._id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => openEditTest(test)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") openEditTest(test);
+                        }}
+                        className="cursor-pointer rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 transition hover:border-teal-300 hover:shadow-sm focus:outline-none focus:ring-4 focus:ring-teal-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-teal-700 dark:focus:ring-teal-950"
+                      >
                         <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
                           <div className="min-w-0">
                             <p className="truncate font-bold text-slate-950 dark:text-white">{test.testName}</p>
@@ -706,14 +853,14 @@ const HospitalDashborad = () => {
                             </Pill>
                             {!test.isDeleted && (
                               <>
-                                <IconButton icon="edit" label="Edit test" onClick={() => openEditTest(test)} />
-                                <IconButton icon="archive" label="Soft delete test" tone="warning" disabled={actionId === test._id} onClick={() => runTestAction(test, "softDelete")} />
+                                <IconButton icon="edit" label="Edit test" onClick={(event) => { event.stopPropagation(); openEditTest(test); }} />
+                                <IconButton icon="archive" label="Soft delete test" tone="warning" disabled={actionId === test._id} onClick={(event) => { event.stopPropagation(); runTestAction(test, "softDelete"); }} />
                               </>
                             )}
                             {test.isDeleted && (
-                              <IconButton icon="restore" label="Restore test" tone="success" disabled={actionId === test._id} onClick={() => runTestAction(test, "restore")} />
+                              <IconButton icon="restore" label="Restore test" tone="success" disabled={actionId === test._id} onClick={(event) => { event.stopPropagation(); runTestAction(test, "restore"); }} />
                             )}
-                            <IconButton icon="trash" label="Delete test permanently" tone="danger" disabled={actionId === test._id} onClick={() => runTestAction(test, "hardDelete")} />
+                            <IconButton icon="trash" label="Delete test permanently" tone="danger" disabled={actionId === test._id} onClick={(event) => { event.stopPropagation(); runTestAction(test, "hardDelete"); }} />
                           </div>
                         </div>
                       </div>
@@ -733,10 +880,10 @@ const HospitalDashborad = () => {
         {activeReportTab === "labs-tests" && (
           <>
             <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <StatCard label="Labs" value={visibleLabs.length} icon="lab" />
-              <StatCard label="Tests" value={visibleTests.length} icon="test" />
-              <StatCard label="Active tests" value={visibleTests.filter((test) => !test.isDeleted && test.status === "active").length} icon="activity" />
-              <StatCard label="Deleted tests" value={visibleTests.filter((test) => test.isDeleted).length} icon="archive" />
+              <StatCard label="Labs" value={visibleLabs.length} icon="lab" onClick={() => setActiveForm("lab")} />
+              <StatCard label="Tests" value={visibleTests.length} icon="test" onClick={() => setActiveForm("test")} />
+              <StatCard label="Active tests" value={visibleTests.filter((test) => !test.isDeleted && test.status === "active").length} icon="activity" onClick={() => openReportTab("labs-tests")} />
+              <StatCard label="Deleted tests" value={visibleTests.filter((test) => test.isDeleted).length} icon="archive" onClick={() => openReportTab("labs-tests")} />
             </section>
 
             <section className="mt-6 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
@@ -751,7 +898,7 @@ const HospitalDashborad = () => {
 
                 <div className="mt-5 space-y-3">
                   {visibleLabs.map((lab) => (
-                    <div key={lab._id} className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+                    <button key={lab._id} type="button" onClick={() => setActiveForm("test")} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-left transition hover:border-teal-300 hover:shadow-sm focus:outline-none focus:ring-4 focus:ring-teal-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-teal-700 dark:focus:ring-teal-950">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="truncate font-bold text-slate-950 dark:text-white">{lab.labName}</p>
@@ -763,7 +910,7 @@ const HospitalDashborad = () => {
                         <span>{lab.labCode}</span>
                         <span>{lab.cityId?.cityName || "City"}</span>
                       </div>
-                    </div>
+                    </button>
                   ))}
                   {!loading && visibleLabs.length === 0 && (
                     <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
@@ -786,7 +933,16 @@ const HospitalDashborad = () => {
 
                 <div className="mt-5 space-y-3">
                   {visibleTests.map((test) => (
-                    <div key={test._id} className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+                    <div
+                      key={test._id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => openEditTest(test)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") openEditTest(test);
+                      }}
+                      className="cursor-pointer rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 transition hover:border-teal-300 hover:shadow-sm focus:outline-none focus:ring-4 focus:ring-teal-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-teal-700 dark:focus:ring-teal-950"
+                    >
                       <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
                         <div className="min-w-0">
                           <p className="truncate font-bold text-slate-950 dark:text-white">{test.testName}</p>
@@ -800,14 +956,14 @@ const HospitalDashborad = () => {
                           </Pill>
                           {!test.isDeleted && (
                             <>
-                              <IconButton icon="edit" label="Edit test" onClick={() => openEditTest(test)} />
-                              <IconButton icon="archive" label="Soft delete test" tone="warning" disabled={actionId === test._id} onClick={() => runTestAction(test, "softDelete")} />
+                              <IconButton icon="edit" label="Edit test" onClick={(event) => { event.stopPropagation(); openEditTest(test); }} />
+                              <IconButton icon="archive" label="Soft delete test" tone="warning" disabled={actionId === test._id} onClick={(event) => { event.stopPropagation(); runTestAction(test, "softDelete"); }} />
                             </>
                           )}
                           {test.isDeleted && (
-                            <IconButton icon="restore" label="Restore test" tone="success" disabled={actionId === test._id} onClick={() => runTestAction(test, "restore")} />
+                            <IconButton icon="restore" label="Restore test" tone="success" disabled={actionId === test._id} onClick={(event) => { event.stopPropagation(); runTestAction(test, "restore"); }} />
                           )}
-                          <IconButton icon="trash" label="Delete test permanently" tone="danger" disabled={actionId === test._id} onClick={() => runTestAction(test, "hardDelete")} />
+                          <IconButton icon="trash" label="Delete test permanently" tone="danger" disabled={actionId === test._id} onClick={(event) => { event.stopPropagation(); runTestAction(test, "hardDelete"); }} />
                         </div>
                       </div>
                     </div>
@@ -821,6 +977,15 @@ const HospitalDashborad = () => {
               </div>
             </section>
           </>
+        )}
+
+        {isReportsTab && (
+          <StatReportsSection
+            title="Hospital Reports"
+            subtitle="Section-wise hospital dashboard statistics with PDF download."
+            reports={hospitalStatReports}
+            loading={loading}
+          />
         )}
 
         {isPatientTab && (

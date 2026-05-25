@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axiosInstance from "../api";
 import AddTest from "../components/AddTest";
+import StatReportsSection from "../components/StatReportsSection";
 import { UseAuth } from "../custom_hook/useAuth";
 
 const paths = {
@@ -15,6 +16,8 @@ const paths = {
   trash: "M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v5M14 11v5",
   done: "M5 13l4 4L19 7",
   close: "M6 18L18 6M6 6l12 12",
+  report: "M9 3h6l4 4v14H5V3h4M14 3v5h5M8 13h8M8 17h6",
+  menu: "M4 6h16M4 12h16M4 18h16",
 };
 
 const Icon = ({ name, className = "h-5 w-5" }) => (
@@ -99,6 +102,7 @@ const LabDashboard = () => {
   const [actionId, setActionId] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const loadDashboard = async () => {
     if (!user?.labId) {
@@ -132,8 +136,13 @@ const LabDashboard = () => {
     { id: "overview", label: "Overview", icon: "lab" },
     { id: "tests", label: "Tests", icon: "test" },
     { id: "patients", label: "Patients", icon: "user" },
+    { id: "reports", label: "Reports", icon: "report" },
     { id: "addTest", label: "Add Test", icon: "test" },
   ];
+  const selectTab = (tabId) => {
+    setActiveTab(tabId);
+    setMenuOpen(false);
+  };
 
   const runTestAction = async (test, action) => {
     const confirmMessage = {
@@ -178,8 +187,92 @@ const LabDashboard = () => {
     await loadDashboard();
   };
 
+  const activeTests = tests.filter((test) => !test.isDeleted && test.status === "active").length;
+  const inactiveTests = tests.filter((test) => !test.isDeleted && test.status !== "active").length;
+  const deletedTests = tests.filter((test) => test.isDeleted).length;
+  const pendingPatientTests = testPatients.reduce((total, item) => total + (item.tests || []).filter((test) => test.status !== "completed").length, 0);
+  const completedPatientTests = testPatients.reduce((total, item) => total + (item.tests || []).filter((test) => test.status === "completed").length, 0);
+  const statReports = [
+    {
+      id: "lab-overview",
+      section: "Overview",
+      title: "Lab Overview Report",
+      description: "Lab profile and operational status report.",
+      metrics: [
+        { label: "Lab Code", value: lab?.labCode || "-" },
+        { label: "Status", value: lab?.status || "-" },
+        { label: "In-charge", value: lab?.inChargeName || user?.name || "-" },
+        { label: "Timing", value: lab ? `${lab.openingTime || "-"} - ${lab.closingTime || "-"}` : "-" },
+        { label: "Emergency", value: lab?.emergencyAvailable ? "Yes" : "No" },
+        { label: "Home Collection", value: lab?.homeCollectionAvailable ? "Yes" : "No" },
+      ],
+    },
+    {
+      id: "lab-tests",
+      section: "Tests",
+      title: "Test Catalogue Report",
+      description: "Active, inactive, and deleted test counts for this lab.",
+      metrics: [
+        { label: "Total Tests", value: tests.length },
+        { label: "Active Tests", value: activeTests },
+        { label: "Inactive Tests", value: inactiveTests },
+        { label: "Deleted Tests", value: deletedTests },
+      ],
+      rows: tests.map((test) => `${test.testName} | ${test.testCode || "-"} | Rs. ${test.amount || 0} | ${test.isDeleted ? "deleted" : test.status}`),
+    },
+    {
+      id: "lab-patients",
+      section: "Patients",
+      title: "Test Patient Report",
+      description: "Patients and pending/completed test workload.",
+      metrics: [
+        { label: "Patients", value: testPatients.length },
+        { label: "Pending Tests", value: pendingPatientTests },
+        { label: "Completed Tests", value: completedPatientTests },
+      ],
+      rows: testPatients.map((item) => `${item.appointment?.userId?.name || "Patient"} | ${item.appointment?.doctorId?.doctorName || "Doctor"} | ${(item.tests || []).length} test(s)`),
+    },
+  ];
+
   return (
     <main className="min-h-[calc(100svh-73px)] bg-slate-50 text-left dark:bg-slate-950">
+      {menuOpen && (
+        <div className="fixed inset-0 z-40 bg-slate-950/60 lg:hidden" onClick={() => setMenuOpen(false)}>
+          <aside className="h-full w-80 max-w-[86vw] border-r border-slate-200 bg-white px-5 py-6 shadow-2xl dark:border-slate-800 dark:bg-slate-950" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-teal-700 text-white dark:bg-teal-500 dark:text-slate-950">
+                  <Icon name="lab" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-lg font-black text-slate-950 dark:text-white">{lab?.labName || user?.name || "Lab"}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Lab Dashboard</p>
+                </div>
+              </div>
+              <IconButton icon="close" label="Close menu" onClick={() => setMenuOpen(false)} />
+            </div>
+
+            <nav className="mt-8 space-y-2">
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => selectTab(item.id)}
+                  className={`flex h-12 w-full items-center gap-3 rounded-md px-4 text-sm font-bold transition ${
+                    activeTab === item.id
+                      ? "bg-teal-700 text-white shadow-lg shadow-teal-900/10 dark:bg-teal-500 dark:text-slate-950"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  <Icon name={item.icon} className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </nav>
+          </aside>
+        </div>
+      )}
+
       <aside className="fixed bottom-0 left-0 top-[73px] z-20 hidden w-72 border-r border-slate-200 bg-white px-5 py-6 shadow-sm dark:border-slate-800 dark:bg-slate-950 lg:block">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-teal-700 text-white dark:bg-teal-500 dark:text-slate-950">
@@ -196,7 +289,7 @@ const LabDashboard = () => {
             <button
               key={item.id}
               type="button"
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => selectTab(item.id)}
               className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-bold transition ${
                 activeTab === item.id
                   ? "bg-teal-700 text-white shadow-lg shadow-teal-900/10 dark:bg-teal-500 dark:text-slate-950"
@@ -222,10 +315,21 @@ const LabDashboard = () => {
       <section className="px-4 py-6 sm:px-6 lg:pl-80">
         <header className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-300">Lab workspace</p>
-              <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-white">{lab?.labName || user?.name || "Lab Dashboard"}</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">Manage lab details and tests from one workspace.</p>
+            <div className="flex min-w-0 items-start gap-3">
+              <button
+                type="button"
+                onClick={() => setMenuOpen(true)}
+                className="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900 lg:hidden"
+                aria-label="Open lab navigation"
+                aria-expanded={menuOpen}
+              >
+                <Icon name="menu" className="h-5 w-5" />
+              </button>
+              <div className="min-w-0">
+                <p className="text-sm font-bold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-300">Lab workspace</p>
+                <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950 dark:text-white sm:text-3xl">{lab?.labName || user?.name || "Lab Dashboard"}</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">Manage lab details and tests from one workspace.</p>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               {lab && <Pill tone={lab.status === "active" ? "success" : "warning"}>{lab.status}</Pill>}
@@ -235,9 +339,9 @@ const LabDashboard = () => {
             </div>
           </div>
 
-          <div className="mt-5 flex gap-2 overflow-x-auto lg:hidden">
+          <div className="mt-5 hidden gap-2 overflow-x-auto sm:flex lg:hidden">
             {navItems.map((item) => (
-              <button key={item.id} type="button" onClick={() => setActiveTab(item.id)} className={`h-10 rounded-md px-4 text-sm font-bold ${activeTab === item.id ? "bg-teal-700 text-white" : "border border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"}`}>
+              <button key={item.id} type="button" onClick={() => selectTab(item.id)} className={`h-10 rounded-md px-4 text-sm font-bold ${activeTab === item.id ? "bg-teal-700 text-white" : "border border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"}`}>
                 {item.label}
               </button>
             ))}
@@ -385,6 +489,15 @@ const LabDashboard = () => {
               <AddTest onCreated={loadDashboard} />
             </div>
           </section>
+        )}
+
+        {activeTab === "reports" && (
+          <StatReportsSection
+            title="Lab Reports"
+            subtitle="Section-wise lab, test, and test-patient statistics."
+            reports={statReports}
+            loading={loading}
+          />
         )}
 
         {editingTest && (

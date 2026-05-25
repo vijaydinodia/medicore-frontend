@@ -9,6 +9,8 @@ import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import LocalHospitalRoundedIcon from "@mui/icons-material/LocalHospitalRounded";
 import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import MedicalServicesRoundedIcon from "@mui/icons-material/MedicalServicesRounded";
 import PersonAddAltRoundedIcon from "@mui/icons-material/PersonAddAltRounded";
 import ScienceRoundedIcon from "@mui/icons-material/ScienceRounded";
@@ -36,6 +38,7 @@ const Header = () => {
   const { theme, toggleTheme } = UseTheme();
   const { isAuthenticated, user, logout } = UseAuth();
   const [accountOpen, setAccountOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const accountRef = useRef(null);
   const hideHeader = location.pathname.startsWith("/super-admin");
 
@@ -61,6 +64,7 @@ const Header = () => {
   const dashboardPath = getDashboardPath(user);
   const isHospitalRole = user?.role === "hospital" || user?.role === "admin";
   const accountName = user?.name || user?.doctorName || user?.email || "Account";
+  const accountPhoto = user?.profileImage || "";
   const initials =
     accountName
       .split(" ")
@@ -99,43 +103,49 @@ const Header = () => {
         { name: "Login", path: "/login" },
       ];
 
+  const renderNavLink = (link, variant = "desktop") => {
+    const NavIcon = navIcons[link.name] || ScienceRoundedIcon;
+    const currentPath = `${location.pathname}${location.search}${location.hash}`;
+    const linkHasState = link.path.includes("?") || link.path.includes("#");
+    const active = linkHasState
+      ? currentPath === link.path
+      : location.pathname === link.path || (location.pathname === "/" && link.path === "/signup");
+    const classes = variant === "mobile"
+      ? `flex h-12 w-full items-center gap-3 rounded-md px-3 text-sm font-bold transition ${
+          active
+            ? "bg-teal-700 text-white dark:bg-teal-400 dark:text-slate-950"
+            : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900"
+        }`
+      : `inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold transition ${
+          active
+            ? "bg-white text-teal-800 shadow-sm dark:bg-slate-950 dark:text-teal-200"
+            : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
+        }`;
+
+    return (
+      <Link key={link.path} to={link.path} onClick={() => setMobileMenuOpen(false)} className={classes}>
+        <NavIcon className="!h-4 !w-4 shrink-0" aria-hidden="true" />
+        <span className="truncate">{link.name}</span>
+      </Link>
+    );
+  };
+
   return (
     <header className="sticky top-0 z-30 w-full border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
-      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 md:flex-row md:items-center md:justify-between">
-        <Link to="/" className="flex items-center gap-3 text-slate-950 dark:text-white">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <Link to="/" className="flex min-w-0 items-center gap-3 text-slate-950 dark:text-white">
           <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-700 text-white shadow-sm ring-1 ring-teal-500/20 dark:bg-teal-500 dark:text-slate-950">
             <LocalHospitalRoundedIcon className="!h-6 !w-6" aria-hidden="true" />
           </span>
-          <span>
+          <span className="min-w-0">
             <span className="block text-xl font-black leading-tight tracking-tight">MediCore</span>
             <span className="block text-xs font-bold uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300">Care network</span>
           </span>
         </Link>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <nav className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-900">
-            {navLinks.map((link) => {
-              const NavIcon = navIcons[link.name] || ScienceRoundedIcon;
-              const currentPath = `${location.pathname}${location.search}${location.hash}`;
-              const linkHasState = link.path.includes("?") || link.path.includes("#");
-              const active = linkHasState
-                ? currentPath === link.path
-                : location.pathname === link.path || (location.pathname === "/" && link.path === "/signup");
-              return (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold transition ${
-                    active
-                      ? "bg-white text-teal-800 shadow-sm dark:bg-slate-950 dark:text-teal-200"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  <NavIcon className="!h-4 !w-4" aria-hidden="true" />
-                  {link.name}
-                </Link>
-              );
-            })}
+        <div className="flex shrink-0 items-center gap-2">
+          <nav className="hidden items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-900 lg:flex">
+            {navLinks.map((link) => renderNavLink(link))}
           </nav>
 
           {isAuthenticated && (
@@ -147,19 +157,25 @@ const Header = () => {
                 aria-label="Open account menu"
                 aria-expanded={accountOpen}
               >
-                {user?.profileImage ? <img src={user.profileImage} alt="" className="h-full w-full object-cover" /> : initials}
+                {accountPhoto ? <img src={accountPhoto} alt="" className="h-full w-full object-cover" /> : initials}
               </button>
 
               {accountOpen && (
                 <div className="absolute right-0 top-14 z-50 w-64 rounded-lg border border-slate-200 bg-white p-2 text-left shadow-xl dark:border-slate-800 dark:bg-slate-950">
-                  <div className="border-b border-slate-200 px-3 py-3 dark:border-slate-800">
-                    <p className="truncate text-sm font-black text-slate-950 dark:text-white">{accountName}</p>
-                    <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">{user?.email || "Signed in"}</p>
+                  <div className="flex items-center gap-3 border-b border-slate-200 px-3 py-3 dark:border-slate-800">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-teal-700 text-xs font-black text-white dark:bg-teal-500 dark:text-slate-950">
+                      {accountPhoto ? <img src={accountPhoto} alt="" className="h-full w-full object-cover" /> : initials}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-slate-950 dark:text-white">{accountName}</p>
+                      <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">{user?.email || "Signed in"}</p>
+                    </div>
                   </div>
 
                   <div className="py-2">
                     <EditProfile
                       user={user}
+                      onUpdated={() => setAccountOpen(false)}
                       triggerClassName="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900"
                     />
                     <ChangePassword triggerClassName="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900" />
@@ -180,8 +196,26 @@ const Header = () => {
           <button onClick={toggleTheme} className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-100 hover:text-slate-950 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white" aria-label="Toggle theme">
             {theme === "light" ? <DarkModeRoundedIcon className="!h-5 !w-5" aria-hidden="true" /> : <WbSunnyRoundedIcon className="!h-5 !w-5" aria-hidden="true" />}
           </button>
+
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen((open) => !open)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-100 hover:text-slate-950 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900 lg:hidden"
+            aria-label="Open navigation"
+            aria-expanded={mobileMenuOpen}
+          >
+            {mobileMenuOpen ? <CloseRoundedIcon className="!h-5 !w-5" aria-hidden="true" /> : <MenuRoundedIcon className="!h-5 !w-5" aria-hidden="true" />}
+          </button>
         </div>
       </div>
+
+      {mobileMenuOpen && (
+        <div className="border-t border-slate-200 bg-white px-4 py-3 shadow-lg dark:border-slate-800 dark:bg-slate-950 lg:hidden">
+          <nav className="mx-auto grid max-w-7xl gap-2">
+            {navLinks.map((link) => renderNavLink(link, "mobile"))}
+          </nav>
+        </div>
+      )}
     </header>
   );
 };

@@ -969,7 +969,15 @@ const DoctorCard = ({ doctor, onBook }) => {
   const image = getDoctorPhoto(doctor);
 
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <article
+      role="button"
+      tabIndex={0}
+      onClick={onBook}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") onBook();
+      }}
+      className="cursor-pointer rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-teal-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-teal-700 dark:focus:ring-teal-950"
+    >
       <div className="flex items-start gap-4">
         <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md bg-teal-700 text-2xl font-black text-white dark:bg-teal-500 dark:text-slate-950">
           {image ? (
@@ -1000,7 +1008,10 @@ const DoctorCard = ({ doctor, onBook }) => {
 
       <button
         type="button"
-        onClick={onBook}
+        onClick={(event) => {
+          event.stopPropagation();
+          onBook();
+        }}
         className="mt-5 h-11 w-full rounded-md bg-teal-700 px-4 text-sm font-black text-white shadow-sm transition hover:bg-teal-800 dark:bg-teal-400 dark:text-slate-950 dark:hover:bg-teal-300"
       >
         Book Appointment
@@ -1010,11 +1021,23 @@ const DoctorCard = ({ doctor, onBook }) => {
 };
 
 const TestCard = ({ test }) => {
+  const navigate = useNavigate();
   const image = getTestPhoto(test);
   const address = test.labId?.address || test.hospitalId?.address || "Address not available";
+  const hospitalId = getId(test.hospitalId);
 
   return (
-    <article className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <article
+      role={hospitalId ? "button" : undefined}
+      tabIndex={hospitalId ? 0 : undefined}
+      onClick={() => {
+        if (hospitalId) navigate(`/hospital/details/${hospitalId}`);
+      }}
+      onKeyDown={(event) => {
+        if (hospitalId && (event.key === "Enter" || event.key === " ")) navigate(`/hospital/details/${hospitalId}`);
+      }}
+      className={`overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition dark:border-slate-800 dark:bg-slate-900 ${hospitalId ? "cursor-pointer hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-teal-100 dark:hover:border-teal-700 dark:focus:ring-teal-950" : ""}`}
+    >
       <div className="aspect-[16/9] bg-slate-100 dark:bg-slate-800">
         {image ? (
           <img src={image} alt={test.testName || "Test"} className="h-full w-full object-cover" />

@@ -39,6 +39,7 @@ body {
   margin: 0;
   background: #f8fafc;
   color: #0f172a;
+  overflow-x: hidden;
 }
 
 html.dark {
@@ -52,8 +53,10 @@ html.dark body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
+  max-width: 100%;
 }
 
 button {
@@ -66,6 +69,28 @@ button:disabled {
 
 #root {
   min-height: 100svh;
+  overflow-x: clip;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+table {
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .app-compact-scroll {
+    scrollbar-width: none;
+  }
+
+  .app-compact-scroll::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .auth-page {

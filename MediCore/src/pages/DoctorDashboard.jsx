@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axiosInstance from "../api";
 import SearchInput from "../components/SearchInput";
+import StatReportsSection from "../components/StatReportsSection";
 import { getAuthInfo } from "../custom_hook/useAuth";
 
 const emptyMedicine = {
@@ -59,6 +60,7 @@ const DoctorDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [activeAppointment, setActiveAppointment] = useState(null);
+  const [activeTab, setActiveTab] = useState("patients");
 
   const loadAppointments = async () => {
     try {
@@ -96,6 +98,9 @@ const DoctorDashboard = () => {
 
   const reachedCount = appointments.filter((appointment) => appointment.isReached).length;
   const completedCount = appointments.filter((appointment) => appointment.status === "completed").length;
+  const pendingCount = appointments.filter((appointment) => appointment.status === "pending").length;
+  const confirmedCount = appointments.filter((appointment) => appointment.status === "confirmed").length;
+  const cancelledCount = appointments.filter((appointment) => appointment.status === "cancelled").length;
   const search = searchTerm.trim().toLowerCase();
   const visibleAppointments = appointments
     .filter((appointment) => {
@@ -128,6 +133,26 @@ const DoctorDashboard = () => {
     setSortDirection("asc");
   };
 
+  const statReports = [
+    {
+      id: "doctor-day-summary",
+      section: "Appointments",
+      title: `Appointment Summary - ${formatDate(selectedDate)}`,
+      description: "Patient appointment status report for the selected date.",
+      metrics: [
+        { label: "Appointments", value: appointments.length },
+        { label: "Reached", value: reachedCount },
+        { label: "Completed", value: completedCount },
+        { label: "Pending", value: pendingCount },
+        { label: "Confirmed", value: confirmedCount },
+        { label: "Cancelled", value: cancelledCount },
+      ],
+      rows: visibleAppointments.map((appointment) =>
+        `${appointment.timeSlot || "-"} | ${appointment.userId?.name || "Patient"} | ${appointment.status || "pending"} | Reached: ${appointment.isReached ? "Yes" : "No"}`,
+      ),
+    },
+  ];
+
   return (
     <main className="min-h-[calc(100svh-73px)] bg-slate-50 px-4 py-8 text-left dark:bg-slate-950 sm:px-6">
       <div className="mx-auto max-w-7xl">
@@ -155,6 +180,32 @@ const DoctorDashboard = () => {
           </label>
         </div>
 
+        <div className="mt-6 flex gap-2 overflow-x-auto">
+          {[
+            { id: "patients", label: "Patients" },
+            { id: "reports", label: "Reports" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`h-10 rounded-md px-4 text-sm font-bold transition ${
+                activeTab === tab.id
+                  ? "bg-teal-700 text-white dark:bg-teal-400 dark:text-slate-950"
+                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === "reports" && (
+          <StatReportsSection title="Doctor Reports" subtitle="Section-wise appointment and patient statistics." reports={statReports} loading={loading} />
+        )}
+
+        {activeTab === "patients" && (
+          <>
         <section className="mt-6 grid gap-4 md:grid-cols-3">
           <Stat label="Appointments" value={appointments.length} />
           <Stat label="Reached" value={reachedCount} />
@@ -231,6 +282,8 @@ const DoctorDashboard = () => {
             onClose={() => setActiveAppointment(null)}
             onSaved={handleSavedMedicine}
           />
+        )}
+          </>
         )}
       </div>
     </main>
