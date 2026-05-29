@@ -98,6 +98,10 @@ const UserDashboard = () => {
   const [selectedHospitalId, setSelectedHospitalId] = useState("");
   const [selectedDepartmentId, setSelectedDepartmentId] = useState("all");
   const [bookingDoctor, setBookingDoctor] = useState(null);
+  const [hospitalPage, setHospitalPage] = useState(1);
+  const [hospitalLimit] = useState(6);
+  const [hospitalTotalPages, setHospitalTotalPages] = useState(1);
+  const [hospitalTotalRecords, setHospitalTotalRecords] = useState(0);
 
   const [hospitals, setHospitals] = useState([]);
   const [doctors, setDoctors] = useState([]);
@@ -126,10 +130,14 @@ const UserDashboard = () => {
       setLoading(true);
       setMessage("");
 
-      const hospitalResult = await axiosInstance.get("/hospital/getAllHospital");
+      const hospitalResult = await axiosInstance.get(
+        `/hospital/getAllHospital?page=${hospitalPage}&limit=${hospitalLimit}`,
+      );
       const doctorResult = await axiosInstance.get("/doctor/getAllDoctors");
       const departmentResult = await axiosInstance.get("/department/getAllDepartments");
       setHospitals(hospitalResult.data.data || []);
+      setHospitalTotalPages(hospitalResult.data.totalPages || 1);
+      setHospitalTotalRecords(hospitalResult.data.totalRecords || 0);
       setDoctors(doctorResult.data.data || []);
       setDepartments(departmentResult.data.data || []);
 
@@ -155,7 +163,7 @@ const UserDashboard = () => {
 
   useEffect(() => {
     loadDashboard();
-  }, [canUsePatientActions]);
+  }, [canUsePatientActions, hospitalPage]);
 
   useEffect(() => {
     const view = new URLSearchParams(location.search).get("view");
@@ -326,12 +334,24 @@ const UserDashboard = () => {
     return values.some((value) => String(value || "").toLowerCase().includes(text));
   });
 
-  let resultCount = visibleHospitals.length;
+  let resultCount = searchText ? visibleHospitals.length : hospitalTotalRecords;
   if (activeTab === "doctor") resultCount = visibleDoctors.length;
   if (activeTab === "test") resultCount = visibleTests.length;
   if (activeTab === "history") {
     resultCount = selectedHistoryDoctorId ? visibleAppointments.length : visibleHistoryDoctorGroups.length;
   }
+
+  const goToPreviousHospitalPage = () => {
+    if (hospitalPage > 1) {
+      setHospitalPage(hospitalPage - 1);
+    }
+  };
+
+  const goToNextHospitalPage = () => {
+    if (hospitalPage < hospitalTotalPages) {
+      setHospitalPage(hospitalPage + 1);
+    }
+  };
 
   const openHospitalDoctors = (hospitalId) => {
     setSelectedHospitalId(hospitalId);
@@ -550,90 +570,118 @@ const UserDashboard = () => {
         )}
 
         {!loading && activeTab === "hospital" && (
-          <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {visibleHospitals.map((hospital) => {
-              const hospitalId = getId(hospital);
-              const image = getHospitalPhoto(hospital);
+          <>
+            <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {visibleHospitals.map((hospital) => {
+                const hospitalId = getId(hospital);
+                const image = getHospitalPhoto(hospital);
 
-              return (
-                <article
-                  key={hospital._id}
-                  onClick={() => openHospitalDoctors(hospitalId)}
-                  className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-teal-700"
-                >
-                  <div className="aspect-[16/9] bg-slate-100 dark:bg-slate-800">
-                    {image ? (
-                      <img src={image} alt={hospital.hospitalName || "Hospital"} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-teal-700 text-4xl font-black text-white dark:bg-teal-500 dark:text-slate-950">
-                        {(hospital.hospitalName || "H").slice(0, 2).toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-5">
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300">
-                      {hospital.hospitalType || "Hospital"}
-                    </p>
-                    <h2 className="mt-2 line-clamp-2 text-xl font-black text-slate-950 dark:text-white">
-                      {hospital.hospitalName || "Hospital"}
-                    </h2>
-                    <p className="mt-3 min-h-12 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                      {hospital.address || "Address not available"}
-                    </p>
-
-                    <div className="mt-5 grid grid-cols-2 gap-3">
-                      <div className="rounded-md bg-slate-50 p-3 dark:bg-slate-950">
-                        <p className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
-                          Departments
-                        </p>
-                        <p className="mt-1 text-2xl font-black text-slate-950 dark:text-white">
-                          {getDepartmentCount(hospitalId)}
-                        </p>
-                      </div>
-                      <div className="rounded-md bg-slate-50 p-3 dark:bg-slate-950">
-                        <p className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
-                          Doctors
-                        </p>
-                        <p className="mt-1 text-2xl font-black text-slate-950 dark:text-white">
-                          {getDoctorCount(hospitalId) || hospital.totalDoctors || 0}
-                        </p>
-                      </div>
+                return (
+                  <article
+                    key={hospital._id}
+                    onClick={() => openHospitalDoctors(hospitalId)}
+                    className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-teal-700"
+                  >
+                    <div className="aspect-[16/9] bg-slate-100 dark:bg-slate-800">
+                      {image ? (
+                        <img src={image} alt={hospital.hospitalName || "Hospital"} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-teal-700 text-4xl font-black text-white dark:bg-teal-500 dark:text-slate-950">
+                          {(hospital.hospitalName || "H").slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
                     </div>
 
-                    <div className="mt-5 grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          openHospitalDoctors(hospitalId);
-                        }}
-                        className="h-11 rounded-md bg-teal-700 px-4 text-sm font-black text-white shadow-sm transition hover:bg-teal-800 dark:bg-teal-400 dark:text-slate-950 dark:hover:bg-teal-300"
-                      >
-                        View Doctors
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          navigate(`/hospital/details/${hospital._id}`);
-                        }}
-                        className="h-11 rounded-md border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
-                      >
-                        Details
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+                    <div className="p-5">
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300">
+                        {hospital.hospitalType || "Hospital"}
+                      </p>
+                      <h2 className="mt-2 line-clamp-2 text-xl font-black text-slate-950 dark:text-white">
+                        {hospital.hospitalName || "Hospital"}
+                      </h2>
+                      <p className="mt-3 min-h-12 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                        {hospital.address || "Address not available"}
+                      </p>
 
-            {visibleHospitals.length === 0 && (
-              <div className="rounded-lg border border-dashed border-slate-300 p-8 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400 md:col-span-2 xl:col-span-3">
-                {searchText ? "No hospitals match your search." : "No hospitals available yet."}
+                      <div className="mt-5 grid grid-cols-2 gap-3">
+                        <div className="rounded-md bg-slate-50 p-3 dark:bg-slate-950">
+                          <p className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
+                            Departments
+                          </p>
+                          <p className="mt-1 text-2xl font-black text-slate-950 dark:text-white">
+                            {getDepartmentCount(hospitalId)}
+                          </p>
+                        </div>
+                        <div className="rounded-md bg-slate-50 p-3 dark:bg-slate-950">
+                          <p className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
+                            Doctors
+                          </p>
+                          <p className="mt-1 text-2xl font-black text-slate-950 dark:text-white">
+                            {getDoctorCount(hospitalId) || hospital.totalDoctors || 0}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openHospitalDoctors(hospitalId);
+                          }}
+                          className="h-11 rounded-md bg-teal-700 px-4 text-sm font-black text-white shadow-sm transition hover:bg-teal-800 dark:bg-teal-400 dark:text-slate-950 dark:hover:bg-teal-300"
+                        >
+                          View Doctors
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            navigate(`/hospital/details/${hospital._id}`);
+                          }}
+                          className="h-11 rounded-md border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
+                        >
+                          Details
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+
+              {visibleHospitals.length === 0 && (
+                <div className="rounded-lg border border-dashed border-slate-300 p-8 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400 md:col-span-2 xl:col-span-3">
+                  {searchText ? "No hospitals match your search." : "No hospitals available yet."}
+                </div>
+              )}
+            </section>
+
+            {hospitalTotalPages > 1 && (
+              <div className="mt-5 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm font-bold text-slate-600 dark:text-slate-300">
+                  Page {hospitalPage} of {hospitalTotalPages}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={goToPreviousHospitalPage}
+                    disabled={hospitalPage === 1}
+                    className="h-10 rounded-md border border-slate-200 px-4 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goToNextHospitalPage}
+                    disabled={hospitalPage === hospitalTotalPages}
+                    className="h-10 rounded-md bg-teal-700 px-4 text-sm font-black text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-teal-400 dark:text-slate-950 dark:hover:bg-teal-300"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             )}
-          </section>
+          </>
         )}
 
         {!loading && activeTab === "history" && (
