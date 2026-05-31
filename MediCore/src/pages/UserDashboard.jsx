@@ -10,7 +10,7 @@ import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 import ShareRoundedIcon from "@mui/icons-material/ShareRounded";
 import axiosInstance from "../api";
 import SearchInput from "../components/SearchInput";
-import { getAuthInfo } from "../custom_hook/UseAuth";
+import { getAuthInfo } from "../custom_hook/useAuth";
 
 const AppointmentModal = lazy(() => import("../components/AppointmentModal"));
 

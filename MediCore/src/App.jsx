@@ -19,7 +19,7 @@ import Department from "./pages/Department";
 import Doctors from "./pages/Doctors";
 import MedicalDashboard from "./pages/MedicalDashboard";
 import MedicalStore from "./pages/MedicalStore";
-import { getAuthInfo } from "./custom_hook/UseAuth";
+import { getAuthInfo } from "./custom_hook/useAuth";
 
 const PageLoader = () => (
   <div className="flex min-h-[calc(100svh-73px)] items-center justify-center px-4">

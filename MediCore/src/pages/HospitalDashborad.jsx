@@ -26,7 +26,7 @@ import AddSubDepartment from "../components/AddSubDepartment";
 import AddTest from "../components/AddTest";
 import SearchInput from "../components/SearchInput";
 import StatReportsSection from "../components/StatReportsSection";
-import { UseAuth } from "../custom_hook/UseAuth";
+import { UseAuth } from "../custom_hook/useAuth";
 
 const icons = {
   department: MenuRoundedIcon,

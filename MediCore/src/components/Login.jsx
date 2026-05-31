@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../api";
 import AuthShell from "./AuthShell";
-import { getUserRole } from "../custom_hook/UseAuth";
+import { getUserRole } from "../custom_hook/useAuth";
 
 const dashboardByRole = (user) => {
   const role = getUserRole(user);

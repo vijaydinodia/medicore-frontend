@@ -16,7 +16,7 @@ import PersonAddAltRoundedIcon from "@mui/icons-material/PersonAddAltRounded";
 import ScienceRoundedIcon from "@mui/icons-material/ScienceRounded";
 import WbSunnyRoundedIcon from "@mui/icons-material/WbSunnyRounded";
 import { UseTheme } from "../custom_hook/UseTheme";
-import { getDashboardPath, getUserRole, UseAuth } from "../custom_hook/UseAuth";
+import { getDashboardPath, getUserRole, UseAuth } from "../custom_hook/useAuth";
 import ChangePassword from "./ChangePassword";
 import EditProfile from "./EditProfile";
 
