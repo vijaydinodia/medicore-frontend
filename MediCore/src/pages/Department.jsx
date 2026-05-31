@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api";
+import Pagination from "../components/Pagination";
 import SearchInput from "../components/SearchInput";
+import { UsePagination } from "../custom_hook/UsePagination";
 import { getAuthInfo } from "../custom_hook/useAuth";
 
 const getRecordId = (value) => value?._id || value || "";
@@ -72,6 +74,19 @@ const Department = () => {
       return String(aValue).localeCompare(String(bValue), undefined, { numeric: true }) * (sortDirection === "asc" ? 1 : -1);
     });
 
+  const {
+    currentPage,
+    endItem,
+    paginatedItems: paginatedDepartments,
+    setCurrentPage,
+    startItem,
+    totalItems,
+    totalPages,
+  } = UsePagination(visibleDepartments, {
+    pageSize: 9,
+    resetKeys: [searchTerm, statusFilter, sortKey, sortDirection],
+  });
+
   const changeSort = (key) => {
     if (sortKey === key) {
       setSortDirection((direction) => (direction === "asc" ? "desc" : "asc"));
@@ -126,7 +141,7 @@ const Department = () => {
           </div>
         ) : (
           <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {visibleDepartments.map((department) => {
+            {paginatedDepartments.map((department) => {
               const childDepartments = getSubDepartments(department._id);
               return (
                 <article key={department._id} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -176,6 +191,15 @@ const Department = () => {
                 {searchTerm ? "No departments match your search." : "No departments added for this hospital yet."}
               </div>
             )}
+            <Pagination
+              className="md:col-span-2 xl:col-span-3"
+              currentPage={currentPage}
+              endItem={endItem}
+              onPageChange={setCurrentPage}
+              startItem={startItem}
+              totalItems={totalItems}
+              totalPages={totalPages}
+            />
           </section>
         )}
       </div>

@@ -24,8 +24,10 @@ import AddLab from "../components/AddLab";
 import AddMedicalStore from "../components/AddMedicalStore";
 import AddSubDepartment from "../components/AddSubDepartment";
 import AddTest from "../components/AddTest";
+import Pagination from "../components/Pagination";
 import SearchInput from "../components/SearchInput";
 import StatReportsSection from "../components/StatReportsSection";
+import { UsePagination } from "../custom_hook/UsePagination";
 import { UseAuth } from "../custom_hook/useAuth";
 
 const icons = {
@@ -395,6 +397,22 @@ const HospitalDashborad = () => {
       const bValue = patientSortKey === "doctor" ? b.doctorName : b.attendedPatients;
       return String(aValue).localeCompare(String(bValue), undefined, { numeric: true }) * (patientSortDirection === "asc" ? 1 : -1);
     });
+  const labPagination = UsePagination(visibleLabs, {
+    pageSize: 6,
+    resetKeys: [searchTerm, activeForm],
+  });
+  const testPagination = UsePagination(visibleTests, {
+    pageSize: 8,
+    resetKeys: [searchTerm, activeForm],
+  });
+  const doctorStatsPagination = UsePagination(visibleDoctorStats, {
+    pageSize: 6,
+    resetKeys: [patientSearchTerm, patientSortKey, patientSortDirection, statsDate, patientStatusFilter, activeForm],
+  });
+  const patientAppointmentPagination = UsePagination(visiblePatientAppointments, {
+    pageSize: 8,
+    resetKeys: [patientSearchTerm, patientSortKey, patientSortDirection, statsDate, patientStatusFilter, activeForm],
+  });
   const changePatientSort = (key) => {
     if (patientSortKey === key) {
       setPatientSortDirection((direction) => (direction === "asc" ? "desc" : "asc"));
@@ -917,7 +935,7 @@ const HospitalDashborad = () => {
                 </div>
 
                 <div className="mt-5 space-y-3">
-                  {visibleLabs.map((lab) => (
+                  {labPagination.paginatedItems.map((lab) => (
                     <button key={lab._id} type="button" onClick={() => setActiveForm("test")} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-left transition hover:border-teal-300 hover:shadow-sm focus:outline-none focus:ring-4 focus:ring-teal-100 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-teal-700 dark:focus:ring-teal-950">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -937,6 +955,14 @@ const HospitalDashborad = () => {
                       {searchTerm ? "No labs match your search." : "No labs added yet."}
                     </div>
                   )}
+                  <Pagination
+                    currentPage={labPagination.currentPage}
+                    endItem={labPagination.endItem}
+                    onPageChange={labPagination.setCurrentPage}
+                    startItem={labPagination.startItem}
+                    totalItems={labPagination.totalItems}
+                    totalPages={labPagination.totalPages}
+                  />
                 </div>
               </div>
 
@@ -952,7 +978,7 @@ const HospitalDashborad = () => {
                 </div>
 
                 <div className="mt-5 space-y-3">
-                  {visibleTests.map((test) => (
+                  {testPagination.paginatedItems.map((test) => (
                     <div
                       key={test._id}
                       role="button"
@@ -993,6 +1019,14 @@ const HospitalDashborad = () => {
                       {searchTerm ? "No tests match your search." : "No tests added yet."}
                     </div>
                   )}
+                  <Pagination
+                    currentPage={testPagination.currentPage}
+                    endItem={testPagination.endItem}
+                    onPageChange={testPagination.setCurrentPage}
+                    startItem={testPagination.startItem}
+                    totalItems={testPagination.totalItems}
+                    totalPages={testPagination.totalPages}
+                  />
                 </div>
               </div>
             </section>
@@ -1077,7 +1111,7 @@ const HospitalDashborad = () => {
                   <h2 className="text-xl font-black text-slate-950 dark:text-white">Doctor attendance</h2>
                   <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Reached patients by doctor for the selected day.</p>
                   <div className="mt-5 space-y-3">
-                    {visibleDoctorStats.map((doctor) => (
+                    {doctorStatsPagination.paginatedItems.map((doctor) => (
                       <div key={doctor.doctorId} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
                         <div className="min-w-0">
                           <p className="truncate font-bold text-slate-950 dark:text-white">{doctor.doctorName}</p>
@@ -1091,6 +1125,14 @@ const HospitalDashborad = () => {
                         No doctor has marked a patient reached for this day.
                       </div>
                     )}
+                    <Pagination
+                      currentPage={doctorStatsPagination.currentPage}
+                      endItem={doctorStatsPagination.endItem}
+                      onPageChange={doctorStatsPagination.setCurrentPage}
+                      startItem={doctorStatsPagination.startItem}
+                      totalItems={doctorStatsPagination.totalItems}
+                      totalPages={doctorStatsPagination.totalPages}
+                    />
                   </div>
                 </div>
               )}
@@ -1105,7 +1147,7 @@ const HospitalDashborad = () => {
                     <Pill tone="neutral">{visiblePatientAppointments.length} visible</Pill>
                   </div>
                   <div className="mt-5 space-y-3">
-                    {visiblePatientAppointments.slice(0, 8).map((appointment) => (
+                    {patientAppointmentPagination.paginatedItems.map((appointment) => (
                       <div key={appointment._id} className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900 md:grid-cols-[1fr_1fr_auto] md:items-center">
                         <div className="min-w-0">
                           <p className="truncate font-bold text-slate-950 dark:text-white">{appointment.userId?.name || "Patient"}</p>
@@ -1125,6 +1167,14 @@ const HospitalDashborad = () => {
                         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Change the date, status, or search text to check another view.</p>
                       </div>
                     )}
+                    <Pagination
+                      currentPage={patientAppointmentPagination.currentPage}
+                      endItem={patientAppointmentPagination.endItem}
+                      onPageChange={patientAppointmentPagination.setCurrentPage}
+                      startItem={patientAppointmentPagination.startItem}
+                      totalItems={patientAppointmentPagination.totalItems}
+                      totalPages={patientAppointmentPagination.totalPages}
+                    />
                   </div>
                 </div>
               )}

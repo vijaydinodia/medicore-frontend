@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api";
+import Pagination from "../components/Pagination";
 import SearchInput from "../components/SearchInput";
+import { UsePagination } from "../custom_hook/UsePagination";
 import { getAuthInfo } from "../custom_hook/useAuth";
 
 const getId = (value) => {
@@ -93,6 +95,19 @@ const Doctors = () => {
       return String(getValue(a)).localeCompare(String(getValue(b)), undefined, { numeric: true }) * (sortDirection === "asc" ? 1 : -1);
     });
 
+  const {
+    currentPage,
+    endItem,
+    paginatedItems: paginatedDoctors,
+    setCurrentPage,
+    startItem,
+    totalItems,
+    totalPages,
+  } = UsePagination(visibleDoctors, {
+    pageSize: 9,
+    resetKeys: [searchTerm, statusFilter, sortKey, sortDirection],
+  });
+
   const changeSort = (key) => {
     if (sortKey === key) {
       setSortDirection((direction) => (direction === "asc" ? "desc" : "asc"));
@@ -147,7 +162,7 @@ const Doctors = () => {
           </div>
         ) : (
           <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {visibleDoctors.map((doctor) => (
+            {paginatedDoctors.map((doctor) => (
               <DoctorCard key={doctor._id} doctor={doctor} />
             ))}
 
@@ -156,6 +171,15 @@ const Doctors = () => {
                 {searchTerm ? "No doctors match your search." : "No doctors added for this hospital yet."}
               </div>
             )}
+            <Pagination
+              className="md:col-span-2 xl:col-span-3"
+              currentPage={currentPage}
+              endItem={endItem}
+              onPageChange={setCurrentPage}
+              startItem={startItem}
+              totalItems={totalItems}
+              totalPages={totalPages}
+            />
           </section>
         )}
       </div>

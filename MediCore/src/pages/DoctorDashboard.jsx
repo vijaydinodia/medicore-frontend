@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import axiosInstance from "../api";
+import Pagination from "../components/Pagination";
 import SearchInput from "../components/SearchInput";
 import StatReportsSection from "../components/StatReportsSection";
+import { UsePagination } from "../custom_hook/UsePagination";
 import { getAuthInfo } from "../custom_hook/useAuth";
 
 const emptyMedicine = {
@@ -122,6 +124,11 @@ const DoctorDashboard = () => {
       const bValue = sortKey === "patient" ? b.userId?.name || "" : b[sortKey] || "";
       return String(aValue).localeCompare(String(bValue), undefined, { numeric: true }) * (sortDirection === "asc" ? 1 : -1);
     });
+
+  const appointmentPagination = UsePagination(visibleAppointments, {
+    pageSize: 8,
+    resetKeys: [searchTerm, statusFilter, sortKey, sortDirection, selectedDate],
+  });
 
   const changeSort = (key) => {
     if (sortKey === key) {
@@ -264,7 +271,7 @@ const DoctorDashboard = () => {
             <div className="p-5 text-sm font-semibold text-slate-500 dark:text-slate-400">No appointments match this view.</div>
           ) : (
             <div className="divide-y divide-slate-200 dark:divide-slate-800">
-              {visibleAppointments.map((appointment) => (
+              {appointmentPagination.paginatedItems.map((appointment) => (
                 <AppointmentRow
                   key={appointment._id}
                   appointment={appointment}
@@ -273,6 +280,15 @@ const DoctorDashboard = () => {
                   onMedicine={() => setActiveAppointment(appointment)}
                 />
               ))}
+              <Pagination
+                className="m-5"
+                currentPage={appointmentPagination.currentPage}
+                endItem={appointmentPagination.endItem}
+                onPageChange={appointmentPagination.setCurrentPage}
+                startItem={appointmentPagination.startItem}
+                totalItems={appointmentPagination.totalItems}
+                totalPages={appointmentPagination.totalPages}
+              />
             </div>
           )}
         </section>

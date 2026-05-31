@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import axiosInstance from "../api";
 import AddTest from "../components/AddTest";
+import Pagination from "../components/Pagination";
 import StatReportsSection from "../components/StatReportsSection";
+import { UsePagination } from "../custom_hook/UsePagination";
 import { UseAuth } from "../custom_hook/useAuth";
 
 const paths = {
@@ -240,6 +242,15 @@ const LabDashboard = () => {
     },
   ];
 
+  const testPagination = UsePagination(tests, {
+    pageSize: 8,
+    resetKeys: [activeTab, tests.length],
+  });
+  const patientPagination = UsePagination(testPatients, {
+    pageSize: 6,
+    resetKeys: [activeTab, testPatients.length],
+  });
+
   return (
     <main className="min-h-[calc(100svh-73px)] bg-slate-50 text-left dark:bg-slate-950">
       {menuOpen && (
@@ -398,7 +409,7 @@ const LabDashboard = () => {
           <section className="mt-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
             <h2 className="text-xl font-black text-slate-950 dark:text-white">Tests</h2>
             <div className="mt-5 grid gap-3">
-              {tests.map((test) => (
+              {testPagination.paginatedItems.map((test) => (
                 <div key={test._id} className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900 md:grid-cols-[1fr_auto] md:items-center">
                   <div>
                     <p className="font-black text-slate-950 dark:text-white">{test.testName}</p>
@@ -423,6 +434,14 @@ const LabDashboard = () => {
                 </div>
               ))}
               {!loading && tests.length === 0 && <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">No tests added yet.</div>}
+              <Pagination
+                currentPage={testPagination.currentPage}
+                endItem={testPagination.endItem}
+                onPageChange={testPagination.setCurrentPage}
+                startItem={testPagination.startItem}
+                totalItems={testPagination.totalItems}
+                totalPages={testPagination.totalPages}
+              />
             </div>
           </section>
         )}
@@ -431,7 +450,7 @@ const LabDashboard = () => {
           <section className="mt-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
             <h2 className="text-xl font-black text-slate-950 dark:text-white">Test patients</h2>
             <div className="mt-5 grid gap-3">
-              {testPatients.map((item) => (
+              {patientPagination.paginatedItems.map((item) => (
                 <div key={item._id} className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
                   <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-start">
                     <div>
@@ -484,6 +503,14 @@ const LabDashboard = () => {
                 </div>
               ))}
               {!loading && testPatients.length === 0 && <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">No test patients yet.</div>}
+              <Pagination
+                currentPage={patientPagination.currentPage}
+                endItem={patientPagination.endItem}
+                onPageChange={patientPagination.setCurrentPage}
+                startItem={patientPagination.startItem}
+                totalItems={patientPagination.totalItems}
+                totalPages={patientPagination.totalPages}
+              />
             </div>
           </section>
         )}

@@ -9,7 +9,9 @@ import MedicalServicesRoundedIcon from "@mui/icons-material/MedicalServicesRound
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 import ShareRoundedIcon from "@mui/icons-material/ShareRounded";
 import axiosInstance from "../api";
+import Pagination from "../components/Pagination";
 import SearchInput from "../components/SearchInput";
+import { UsePagination } from "../custom_hook/UsePagination";
 import { getAuthInfo } from "../custom_hook/useAuth";
 
 const AppointmentModal = lazy(() => import("../components/AppointmentModal"));
@@ -334,24 +336,29 @@ const UserDashboard = () => {
     return values.some((value) => String(value || "").toLowerCase().includes(text));
   });
 
+  const doctorPagination = UsePagination(visibleDoctors, {
+    pageSize: 9,
+    resetKeys: [searchText, selectedHospitalId, selectedDepartmentId, activeTab],
+  });
+  const testPagination = UsePagination(visibleTests, {
+    pageSize: 9,
+    resetKeys: [searchText, activeTab],
+  });
+  const historyGroupPagination = UsePagination(visibleHistoryDoctorGroups, {
+    pageSize: 8,
+    resetKeys: [searchText, historyDate, historyStatusFilter, selectedHistoryDoctorId, activeTab],
+  });
+  const historyAppointmentPagination = UsePagination(visibleAppointments, {
+    pageSize: 8,
+    resetKeys: [searchText, historyDate, historyStatusFilter, selectedHistoryDoctorId, activeTab],
+  });
+
   let resultCount = searchText ? visibleHospitals.length : hospitalTotalRecords;
   if (activeTab === "doctor") resultCount = visibleDoctors.length;
   if (activeTab === "test") resultCount = visibleTests.length;
   if (activeTab === "history") {
     resultCount = selectedHistoryDoctorId ? visibleAppointments.length : visibleHistoryDoctorGroups.length;
   }
-
-  const goToPreviousHospitalPage = () => {
-    if (hospitalPage > 1) {
-      setHospitalPage(hospitalPage - 1);
-    }
-  };
-
-  const goToNextHospitalPage = () => {
-    if (hospitalPage < hospitalTotalPages) {
-      setHospitalPage(hospitalPage + 1);
-    }
-  };
 
   const openHospitalDoctors = (hospitalId) => {
     setSelectedHospitalId(hospitalId);
@@ -656,37 +663,21 @@ const UserDashboard = () => {
               )}
             </section>
 
-            {hospitalTotalPages > 1 && (
-              <div className="mt-5 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm font-bold text-slate-600 dark:text-slate-300">
-                  Page {hospitalPage} of {hospitalTotalPages}
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={goToPreviousHospitalPage}
-                    disabled={hospitalPage === 1}
-                    className="h-10 rounded-md border border-slate-200 px-4 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    type="button"
-                    onClick={goToNextHospitalPage}
-                    disabled={hospitalPage === hospitalTotalPages}
-                    className="h-10 rounded-md bg-teal-700 px-4 text-sm font-black text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-teal-400 dark:text-slate-950 dark:hover:bg-teal-300"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
+            <Pagination
+              className="mt-5"
+              currentPage={hospitalPage}
+              endItem={Math.min(hospitalPage * hospitalLimit, hospitalTotalRecords)}
+              onPageChange={setHospitalPage}
+              startItem={hospitalTotalRecords === 0 ? 0 : (hospitalPage - 1) * hospitalLimit + 1}
+              totalItems={hospitalTotalRecords}
+              totalPages={hospitalTotalPages}
+            />
           </>
         )}
 
         {!loading && activeTab === "history" && (
           <section className="mt-4 space-y-3">
-            {!selectedHistoryDoctorId && visibleHistoryDoctorGroups.map((group) => (
+            {!selectedHistoryDoctorId && historyGroupPagination.paginatedItems.map((group) => (
               <article
                 key={group.doctorId}
                 role="button"
@@ -745,7 +736,7 @@ const UserDashboard = () => {
               </div>
             )}
 
-            {selectedHistoryDoctorId && visibleAppointments.map((appointment) => (
+            {selectedHistoryDoctorId && historyAppointmentPagination.paginatedItems.map((appointment) => (
               <article key={appointment._id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <div className="flex flex-col gap-3 border-b border-slate-200 p-4 dark:border-slate-800 lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex min-w-0 items-center gap-3">
@@ -824,12 +815,32 @@ const UserDashboard = () => {
                 {searchText || historyDate || historyStatusFilter !== "all" ? "No appointments match this history view." : "No appointments booked yet."}
               </div>
             )}
+            {!selectedHistoryDoctorId && (
+              <Pagination
+                currentPage={historyGroupPagination.currentPage}
+                endItem={historyGroupPagination.endItem}
+                onPageChange={historyGroupPagination.setCurrentPage}
+                startItem={historyGroupPagination.startItem}
+                totalItems={historyGroupPagination.totalItems}
+                totalPages={historyGroupPagination.totalPages}
+              />
+            )}
+            {selectedHistoryDoctorId && (
+              <Pagination
+                currentPage={historyAppointmentPagination.currentPage}
+                endItem={historyAppointmentPagination.endItem}
+                onPageChange={historyAppointmentPagination.setCurrentPage}
+                startItem={historyAppointmentPagination.startItem}
+                totalItems={historyAppointmentPagination.totalItems}
+                totalPages={historyAppointmentPagination.totalPages}
+              />
+            )}
           </section>
         )}
 
         {!loading && activeTab === "test" && (
           <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {visibleTests.map((test) => (
+            {testPagination.paginatedItems.map((test) => (
               <TestCard key={test._id} test={test} />
             ))}
 
@@ -838,6 +849,15 @@ const UserDashboard = () => {
                 {searchText ? "No tests match your search." : "No tests available yet."}
               </div>
             )}
+            <Pagination
+              className="md:col-span-2 xl:col-span-3"
+              currentPage={testPagination.currentPage}
+              endItem={testPagination.endItem}
+              onPageChange={testPagination.setCurrentPage}
+              startItem={testPagination.startItem}
+              totalItems={testPagination.totalItems}
+              totalPages={testPagination.totalPages}
+            />
           </section>
         )}
 
@@ -885,7 +905,7 @@ const UserDashboard = () => {
             )}
 
             <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {visibleDoctors.map((doctor) => (
+              {doctorPagination.paginatedItems.map((doctor) => (
                 <DoctorCard key={doctor._id} doctor={doctor} onBook={() => openBooking(doctor)} />
               ))}
 
@@ -894,6 +914,15 @@ const UserDashboard = () => {
                   {searchText ? "No doctors match your search." : "No doctors available yet."}
                 </div>
               )}
+              <Pagination
+                className="md:col-span-2 xl:col-span-3"
+                currentPage={doctorPagination.currentPage}
+                endItem={doctorPagination.endItem}
+                onPageChange={doctorPagination.setCurrentPage}
+                startItem={doctorPagination.startItem}
+                totalItems={doctorPagination.totalItems}
+                totalPages={doctorPagination.totalPages}
+              />
             </section>
           </>
         )}

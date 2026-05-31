@@ -5,6 +5,8 @@ import LocalPharmacyRoundedIcon from "@mui/icons-material/LocalPharmacyRounded";
 import MedicationRoundedIcon from "@mui/icons-material/MedicationRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import axiosInstance from "../api";
+import Pagination from "../components/Pagination";
+import { UsePagination } from "../custom_hook/UsePagination";
 
 const money = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -103,6 +105,15 @@ const MedicalStore = () => {
     return values.some((value) => String(value || "").toLowerCase().includes(search));
   });
 
+  const medicinePagination = UsePagination(visibleMedicines, {
+    pageSize: 9,
+    resetKeys: [searchText, activeView],
+  });
+  const orderPagination = UsePagination(visibleOrders, {
+    pageSize: 8,
+    resetKeys: [searchText, activeView],
+  });
+
   return (
     <main className="min-h-[calc(100svh-73px)] px-3 py-4 sm:px-6 lg:py-6">
       <div className="mx-auto max-w-7xl">
@@ -169,7 +180,7 @@ const MedicalStore = () => {
           <section className="min-w-0">
             {activeView === "medicines" && (
               <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
-                {visibleMedicines.map((medicine) => (
+                {medicinePagination.paginatedItems.map((medicine) => (
                   <MedicineCard
                     key={medicine._id}
                     medicine={medicine}
@@ -182,18 +193,35 @@ const MedicalStore = () => {
                 {!loading && visibleMedicines.length === 0 && (
                   <Empty message={searchText ? "No medicines match your search." : "No medicines available right now."} />
                 )}
+                <Pagination
+                  className="sm:col-span-2 2xl:col-span-3"
+                  currentPage={medicinePagination.currentPage}
+                  endItem={medicinePagination.endItem}
+                  onPageChange={medicinePagination.setCurrentPage}
+                  startItem={medicinePagination.startItem}
+                  totalItems={medicinePagination.totalItems}
+                  totalPages={medicinePagination.totalPages}
+                />
               </div>
             )}
 
             {activeView === "orders" && (
               <div className="grid gap-4">
-                {visibleOrders.map((order) => (
+                {orderPagination.paginatedItems.map((order) => (
                   <OrderCard key={order._id} order={order} />
                 ))}
 
                 {!loading && visibleOrders.length === 0 && (
                   <Empty message={searchText ? "No orders match your search." : "No medicine orders yet."} />
                 )}
+                <Pagination
+                  currentPage={orderPagination.currentPage}
+                  endItem={orderPagination.endItem}
+                  onPageChange={orderPagination.setCurrentPage}
+                  startItem={orderPagination.startItem}
+                  totalItems={orderPagination.totalItems}
+                  totalPages={orderPagination.totalPages}
+                />
               </div>
             )}
           </section>

@@ -14,6 +14,8 @@ import TableRowsRoundedIcon from "@mui/icons-material/TableRowsRounded";
 import UnfoldMoreRoundedIcon from "@mui/icons-material/UnfoldMoreRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import { UseTableView } from "../custom_hook/UseTableView";
+import { UsePagination } from "../custom_hook/UsePagination";
+import Pagination from "./Pagination";
 import SearchInput from "./SearchInput";
 
 const icons = {
@@ -140,6 +142,19 @@ const HospitalTableView = ({
     return 0;
   });
 
+  const {
+    currentPage,
+    endItem,
+    paginatedItems: paginatedHospitals,
+    setCurrentPage,
+    startItem,
+    totalItems,
+    totalPages,
+  } = UsePagination(sortedHospitals, {
+    pageSize: viewMode === "table" ? 10 : 9,
+    resetKeys: [activeSearchTerm, sortConfig.key, sortConfig.direction, viewMode],
+  });
+
   const handleSort = (key) => {
     setSortConfig((prev) => ({
       key,
@@ -236,7 +251,7 @@ const HospitalTableView = ({
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-          {sortedHospitals.map((hospital) => (
+          {paginatedHospitals.map((hospital) => (
             <tr key={hospital._id} className="hover:bg-slate-50 dark:hover:bg-slate-900/70">
               <td className="px-4 py-4">
                 <input type="checkbox" checked={selectedItems.includes(hospital._id)} onChange={() => toggleItemSelection(hospital._id)} className="rounded border-slate-300 dark:border-slate-600" />
@@ -273,7 +288,7 @@ const HospitalTableView = ({
 
   const renderCardView = () => (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {sortedHospitals.map((hospital) => (
+      {paginatedHospitals.map((hospital) => (
         <article key={hospital._id} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
           <div className="flex items-start justify-between gap-3">
             <input type="checkbox" checked={selectedItems.includes(hospital._id)} onChange={() => toggleItemSelection(hospital._id)} className="mt-1 rounded border-slate-300 dark:border-slate-600" />
@@ -349,7 +364,19 @@ const HospitalTableView = ({
         <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm font-medium text-slate-500 dark:border-slate-700 dark:text-slate-400">
           No hospitals match your search.
         </div>
-      ) : viewMode === "table" ? renderTableView() : renderCardView()}
+      ) : (
+        <>
+          {viewMode === "table" ? renderTableView() : renderCardView()}
+          <Pagination
+            currentPage={currentPage}
+            endItem={endItem}
+            onPageChange={setCurrentPage}
+            startItem={startItem}
+            totalItems={totalItems}
+            totalPages={totalPages}
+          />
+        </>
+      )}
     </div>
   );
 };

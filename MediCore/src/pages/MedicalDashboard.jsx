@@ -10,6 +10,8 @@ import MedicationRoundedIcon from "@mui/icons-material/MedicationRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import axiosInstance from "../api";
+import Pagination from "../components/Pagination";
+import { UsePagination } from "../custom_hook/UsePagination";
 
 const emptyForm = {
   medicineName: "",
@@ -221,6 +223,15 @@ const MedicalDashboard = () => {
     return values.some((value) => String(value || "").toLowerCase().includes(search));
   });
 
+  const medicinePagination = UsePagination(visibleMedicines, {
+    pageSize: 8,
+    resetKeys: [searchText, activeTab],
+  });
+  const orderPagination = UsePagination(visibleOrders, {
+    pageSize: 8,
+    resetKeys: [searchText, activeTab],
+  });
+
   const medicalName = medicalStores[0]?.medicalName || "Medical counter";
 
   return (
@@ -354,7 +365,7 @@ const MedicalDashboard = () => {
             </div>
 
               <div className="mt-4 grid gap-3">
-                {visibleMedicines.map((medicine) => (
+                {medicinePagination.paginatedItems.map((medicine) => (
                   <MedicineCard
                     key={medicine._id}
                     medicine={medicine}
@@ -368,6 +379,14 @@ const MedicalDashboard = () => {
                 {!loading && visibleMedicines.length === 0 && (
                   <Empty message={searchText ? "No medicine matches your search." : "No medicine added yet."} />
                 )}
+                <Pagination
+                  currentPage={medicinePagination.currentPage}
+                  endItem={medicinePagination.endItem}
+                  onPageChange={medicinePagination.setCurrentPage}
+                  startItem={medicinePagination.startItem}
+                  totalItems={medicinePagination.totalItems}
+                  totalPages={medicinePagination.totalPages}
+                />
               </div>
           </section>
         </section>
@@ -394,7 +413,7 @@ const MedicalDashboard = () => {
             </div>
 
             <div className="mt-4 grid gap-3">
-                {visibleOrders.map((order) => (
+                {orderPagination.paginatedItems.map((order) => (
                   <OrderCard
                     key={order._id}
                     order={order}
@@ -405,6 +424,14 @@ const MedicalDashboard = () => {
                 {!loading && visibleOrders.length === 0 && (
                   <Empty message={searchText ? "No order matches your search." : "No user orders yet."} />
                 )}
+                <Pagination
+                  currentPage={orderPagination.currentPage}
+                  endItem={orderPagination.endItem}
+                  onPageChange={orderPagination.setCurrentPage}
+                  startItem={orderPagination.startItem}
+                  totalItems={orderPagination.totalItems}
+                  totalPages={orderPagination.totalPages}
+                />
               </div>
           </section>
         )}
