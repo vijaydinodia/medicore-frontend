@@ -16,7 +16,7 @@ import PersonAddAltRoundedIcon from "@mui/icons-material/PersonAddAltRounded";
 import ScienceRoundedIcon from "@mui/icons-material/ScienceRounded";
 import WbSunnyRoundedIcon from "@mui/icons-material/WbSunnyRounded";
 import { UseTheme } from "../custom_hook/UseTheme";
-import { getDashboardPath, UseAuth } from "../custom_hook/useAuth";
+import { getDashboardPath, getUserRole, UseAuth } from "../custom_hook/UseAuth";
 import ChangePassword from "./ChangePassword";
 import EditProfile from "./EditProfile";
 
@@ -27,6 +27,7 @@ const navIcons = {
   "Doctor Attendance": EventAvailableRoundedIcon,
   Doctors: MedicalServicesRoundedIcon,
   History: HistoryRoundedIcon,
+  Medical: MedicalServicesRoundedIcon,
   Login: LoginRoundedIcon,
   Patients: GroupsRoundedIcon,
   "Sign Up": PersonAddAltRoundedIcon,
@@ -62,7 +63,8 @@ const Header = () => {
   }
 
   const dashboardPath = getDashboardPath(user);
-  const isHospitalRole = user?.role === "hospital" || user?.role === "admin";
+  const role = getUserRole(user);
+  const isHospitalRole = role === "hospital" || role === "admin";
   const accountName = user?.name || user?.doctorName || user?.email || "Account";
   const accountPhoto = user?.profileImage || "";
   const initials =
@@ -82,19 +84,24 @@ const Header = () => {
           { name: "Department", path: "/hospital/department" },
           { name: "Doctors", path: "/hospital/doctors" },
         ]
-      : user?.role === "doctor"
+      : role === "doctor"
       ? [
           { name: "Dashboard", path: dashboardPath },
           { name: "Patients", path: "/doctor/dashboard#patients" },
         ]
-      : user?.role === "lab"
+      : role === "lab"
       ? [
           { name: "Dashboard", path: dashboardPath },
         ]
-      : user?.role === "user"
+      : role === "medical"
+      ? [
+          { name: "Dashboard", path: dashboardPath },
+        ]
+      : role === "user"
       ? [
           { name: "Dashboard", path: dashboardPath },
           { name: "History", path: "/user/dashboard?view=history" },
+          { name: "Medical", path: "/user/medical" },
         ]
       : [{ name: "Dashboard", path: dashboardPath }]
     : [
@@ -113,12 +120,12 @@ const Header = () => {
     const classes = variant === "mobile"
       ? `flex h-12 w-full items-center gap-3 rounded-md px-3 text-sm font-bold transition ${
           active
-            ? "bg-teal-700 text-white dark:bg-teal-400 dark:text-slate-950"
+            ? "medicore-button-primary text-white dark:text-slate-950"
             : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900"
         }`
       : `inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold transition ${
           active
-            ? "bg-white text-teal-800 shadow-sm dark:bg-slate-950 dark:text-teal-200"
+            ? "bg-white text-teal-800 shadow-sm ring-1 ring-teal-100 dark:bg-slate-950 dark:text-teal-200 dark:ring-teal-900/60"
             : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
         }`;
 
@@ -131,10 +138,10 @@ const Header = () => {
   };
 
   return (
-    <header className="sticky top-0 z-30 w-full border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
+    <header className="sticky top-0 z-30 w-full border-b border-slate-200/70 bg-white/82 shadow-sm backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/82">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <Link to="/" className="flex min-w-0 items-center gap-3 text-slate-950 dark:text-white">
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-700 text-white shadow-sm ring-1 ring-teal-500/20 dark:bg-teal-500 dark:text-slate-950">
+          <span className="medicore-button-primary flex h-10 w-10 items-center justify-center rounded-lg shadow-sm ring-1 ring-teal-500/20">
             <LocalHospitalRoundedIcon className="!h-6 !w-6" aria-hidden="true" />
           </span>
           <span className="min-w-0">
@@ -144,7 +151,7 @@ const Header = () => {
         </Link>
 
         <div className="flex shrink-0 items-center gap-2">
-          <nav className="hidden items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-900 lg:flex">
+          <nav className="medicore-panel hidden items-center gap-2 rounded-lg p-1 lg:flex">
             {navLinks.map((link) => renderNavLink(link))}
           </nav>
 
@@ -153,7 +160,7 @@ const Header = () => {
               <button
                 type="button"
                 onClick={() => setAccountOpen((open) => !open)}
-                className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-teal-200 bg-teal-600 text-sm font-black text-white shadow-sm transition hover:bg-teal-700 focus:outline-none focus:ring-4 focus:ring-teal-100 dark:border-teal-400/40 dark:bg-teal-500 dark:text-slate-950 dark:focus:ring-teal-950"
+                className="medicore-button-primary flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-teal-200 text-sm font-black shadow-sm transition focus:outline-none dark:border-teal-400/40"
                 aria-label="Open account menu"
                 aria-expanded={accountOpen}
               >
@@ -161,9 +168,9 @@ const Header = () => {
               </button>
 
               {accountOpen && (
-                <div className="absolute right-0 top-14 z-50 w-64 rounded-lg border border-slate-200 bg-white p-2 text-left shadow-xl dark:border-slate-800 dark:bg-slate-950">
+                <div className="medicore-panel absolute right-0 top-14 z-50 w-64 rounded-lg p-2 text-left shadow-xl">
                   <div className="flex items-center gap-3 border-b border-slate-200 px-3 py-3 dark:border-slate-800">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-teal-700 text-xs font-black text-white dark:bg-teal-500 dark:text-slate-950">
+                    <div className="medicore-button-primary flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-black">
                       {accountPhoto ? <img src={accountPhoto} alt="" className="h-full w-full object-cover" /> : initials}
                     </div>
                     <div className="min-w-0">
@@ -193,14 +200,14 @@ const Header = () => {
             </div>
           )}
 
-          <button onClick={toggleTheme} className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-100 hover:text-slate-950 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white" aria-label="Toggle theme">
+          <button onClick={toggleTheme} className="medicore-panel inline-flex h-10 w-10 items-center justify-center rounded-md text-slate-600 transition hover:text-teal-800 dark:text-slate-300 dark:hover:text-teal-200" aria-label="Toggle theme">
             {theme === "light" ? <DarkModeRoundedIcon className="!h-5 !w-5" aria-hidden="true" /> : <WbSunnyRoundedIcon className="!h-5 !w-5" aria-hidden="true" />}
           </button>
 
           <button
             type="button"
             onClick={() => setMobileMenuOpen((open) => !open)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-100 hover:text-slate-950 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900 lg:hidden"
+            className="medicore-panel inline-flex h-10 w-10 items-center justify-center rounded-md text-slate-700 transition hover:text-teal-800 dark:text-slate-200 dark:hover:text-teal-200 lg:hidden"
             aria-label="Open navigation"
             aria-expanded={mobileMenuOpen}
           >
@@ -210,7 +217,7 @@ const Header = () => {
       </div>
 
       {mobileMenuOpen && (
-        <div className="border-t border-slate-200 bg-white px-4 py-3 shadow-lg dark:border-slate-800 dark:bg-slate-950 lg:hidden">
+        <div className="border-t border-slate-200/70 bg-white/90 px-4 py-3 shadow-lg backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/90 lg:hidden">
           <nav className="mx-auto grid max-w-7xl gap-2">
             {navLinks.map((link) => renderNavLink(link, "mobile"))}
           </nav>

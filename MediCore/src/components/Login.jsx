@@ -2,13 +2,17 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../api";
 import AuthShell from "./AuthShell";
+import { getUserRole } from "../custom_hook/UseAuth";
 
 const dashboardByRole = (user) => {
-  if (user?.role === "superAdmin") return "/super-admin/dashboard";
-  if (user?.role === "hospital") return "/hospital/dashboard";
-  if (user?.role === "doctor") return "/doctor/dashboard";
-  if (user?.role === "lab") return "/lab/dashboard";
-  if (user?.role === "admin") return "/hospital/dashboard";
+  const role = getUserRole(user);
+
+  if (role === "superAdmin") return "/super-admin/dashboard";
+  if (role === "hospital") return "/hospital/dashboard";
+  if (role === "doctor") return "/doctor/dashboard";
+  if (role === "lab") return "/lab/dashboard";
+  if (role === "medical") return "/medical/dashboard";
+  if (role === "admin") return "/hospital/dashboard";
   return "/user/dashboard";
 };
 
@@ -42,11 +46,17 @@ const Login = () => {
       const user = res.data.user;
 
       localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(user));
+      const normalizedUser = { ...user, role: getUserRole(user) };
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
       window.dispatchEvent(new Event("authChanged"));
       setForm(initialData);
       const from = location.state?.from;
-      const redirectPath = from === "/user/dashboard" && user?.role !== "user" ? dashboardByRole(user) : from || dashboardByRole(user);
+      const redirectPath =
+        normalizedUser.role === "medical"
+          ? "/medical/dashboard"
+          : from === "/user/dashboard" && normalizedUser.role !== "user"
+          ? dashboardByRole(normalizedUser)
+          : from || dashboardByRole(normalizedUser);
       navigate(redirectPath, { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Please check your credentials.");

@@ -35,7 +35,7 @@ const AddLab = ({ onCreated }) => {
       try {
         const res = await axiosInstance.get("/location/city/getAllCity");
         setCities(res.data.data || []);
-      } catch (err) {
+      } catch {
         setError("Unable to load cities.");
       }
     };

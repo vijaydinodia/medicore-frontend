@@ -21,11 +21,12 @@ import axiosInstance from "../api";
 import AddDepartment from "../components/AddDepartment";
 import AddDoctor from "../components/AddDoctor";
 import AddLab from "../components/AddLab";
+import AddMedicalStore from "../components/AddMedicalStore";
 import AddSubDepartment from "../components/AddSubDepartment";
 import AddTest from "../components/AddTest";
 import SearchInput from "../components/SearchInput";
 import StatReportsSection from "../components/StatReportsSection";
-import { UseAuth } from "../custom_hook/useAuth";
+import { UseAuth } from "../custom_hook/UseAuth";
 
 const icons = {
   department: MenuRoundedIcon,
@@ -182,6 +183,7 @@ const HospitalDashborad = () => {
   const [subDepartments, setSubDepartments] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [labs, setLabs] = useState([]);
+  const [medicalStores, setMedicalStores] = useState([]);
   const [tests, setTests] = useState([]);
   const [editingTest, setEditingTest] = useState(null);
   const [actionId, setActionId] = useState("");
@@ -213,6 +215,7 @@ const HospitalDashborad = () => {
   const filteredSubDepartments = subDepartments.filter((item) => getRecordId(item.hospitalId) === hospitalId);
   const filteredDoctors = doctors.filter((item) => getRecordId(item.hospitalId) === hospitalId);
   const filteredLabs = labs.filter((item) => getRecordId(item.hospitalId) === hospitalId);
+  const filteredMedicalStores = medicalStores.filter((item) => getRecordId(item.hospitalId) === hospitalId);
   const filteredTests = tests.filter((item) => getRecordId(item.hospitalId) === hospitalId);
 
   const searchRecords = (items, keys) => {
@@ -228,6 +231,7 @@ const HospitalDashborad = () => {
   const visibleSubDepartments = searchRecords(filteredSubDepartments, ["subDepartmentName", "subDepartmentCode", "description", "status"]);
   const visibleDoctors = searchRecords(filteredDoctors, ["doctorName", "doctorCode", "email", "specialization", "qualification", "status"]);
   const visibleLabs = searchRecords(filteredLabs, ["labName", "labCode", "email", "phone", "inChargeName", "status"]);
+  const visibleMedicalStores = searchRecords(filteredMedicalStores, ["medicalName", "medicalCode", "email", "phone", "inChargeName", "status"]);
   const visibleTests = searchRecords(filteredTests, ["testName", "testCode", "category", "sampleType", "status"]);
 
   let statusTone = "warning";
@@ -247,6 +251,7 @@ const HospitalDashborad = () => {
       const subDepartmentRes = await axiosInstance.get("/sub-department/getAllSubDepartments");
       const doctorRes = await axiosInstance.get("/doctor/getAllDoctors");
       const labRes = await axiosInstance.get("/lab/getAllLabs");
+      const medicalStoreRes = await axiosInstance.get("/medical/getAllMedicalStores");
       const testRes = await axiosInstance.get("/test/getAllTests?includeDeleted=true");
       const patientStatsRes = await axiosInstance.get(`/appointment/hospitalStats?date=${encodeURIComponent(statsDate || getToday())}`);
 
@@ -254,6 +259,7 @@ const HospitalDashborad = () => {
       setSubDepartments(subDepartmentRes.data.data || []);
       setDoctors(doctorRes.data.data || []);
       setLabs(labRes.data.data || []);
+      setMedicalStores(medicalStoreRes.data.data || []);
       setTests(testRes.data.data || []);
       setPatientStats(patientStatsRes.data.data || {});
     } catch (error) {
@@ -343,6 +349,7 @@ const HospitalDashborad = () => {
     { id: "subDepartment", label: "Add subdepartment", icon: "subDepartment", disabled: !canAddNestedRecords, title: !canManageHospitalRecords ? "Hospital is inactive" : !canAddNestedRecords ? "Add a department first" : "Add subdepartment" },
     { id: "doctor", label: "Add doctor", icon: "doctor", disabled: !canAddNestedRecords, title: !canManageHospitalRecords ? "Hospital is inactive" : !canAddNestedRecords ? "Add a department first" : "Add doctor" },
     { id: "lab", label: "Add lab", icon: "lab", disabled: !canManageHospitalRecords, title: !canManageHospitalRecords ? "Hospital is inactive" : "Add lab" },
+    { id: "medicalStore", label: "Add medical", icon: "medical", disabled: !canManageHospitalRecords, title: !canManageHospitalRecords ? "Hospital is inactive" : "Add medical" },
     { id: "test", label: "Add test", icon: "test", disabled: !canAddTest, title: !canManageHospitalRecords ? "Hospital is inactive" : !canAddTest ? "Add a lab first" : "Add test" },
   ];
   const patientSearch = patientSearchTerm.trim().toLowerCase();
@@ -417,6 +424,7 @@ const HospitalDashborad = () => {
         { label: "Subdepartments", value: visibleSubDepartments.length },
         { label: "Doctors", value: visibleDoctors.length },
         { label: "Labs", value: visibleLabs.length },
+        { label: "Medicals", value: visibleMedicalStores.length },
         { label: "Tests", value: visibleTests.length },
       ],
       rows: visibleDoctors.map((doctor) => ({
@@ -488,7 +496,7 @@ const HospitalDashborad = () => {
     <main className="min-h-[calc(100svh-73px)] bg-slate-50 text-left dark:bg-slate-950">
       {workspaceMenuOpen && (
         <div className="fixed inset-0 z-40 bg-slate-950/60 lg:hidden" onClick={() => setWorkspaceMenuOpen(false)}>
-          <aside className="h-full w-80 max-w-[86vw] border-r border-slate-200 bg-white px-5 py-6 shadow-2xl dark:border-slate-800 dark:bg-slate-950" onClick={(event) => event.stopPropagation()}>
+          <aside className="medicore-scroll h-full w-80 max-w-[86vw] overflow-y-auto border-r border-slate-200 bg-white px-5 py-6 shadow-2xl dark:border-slate-800 dark:bg-slate-950" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-teal-700 text-sm font-black text-white dark:bg-teal-500 dark:text-slate-950">
@@ -525,7 +533,7 @@ const HospitalDashborad = () => {
         </div>
       )}
 
-      <aside className="fixed bottom-0 left-0 top-[73px] z-20 hidden w-72 border-r border-slate-200 bg-white px-4 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-950 lg:flex lg:flex-col">
+      <aside className="medicore-scroll fixed bottom-0 left-0 top-[73px] z-20 hidden w-72 overflow-y-auto border-r border-slate-200 bg-white px-4 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-950 lg:flex lg:flex-col">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-teal-700 text-sm font-black text-white dark:bg-teal-500 dark:text-slate-950">
             {hospitalPhoto ? <img src={hospitalPhoto} alt="" className="h-full w-full object-cover" /> : <Icon name="hospital" />}
@@ -561,7 +569,7 @@ const HospitalDashborad = () => {
             type="button"
             onClick={() => setAddMenuOpen((open) => !open)}
             aria-expanded={addMenuOpen}
-            className="flex h-10 w-full items-center justify-between rounded-md bg-teal-700 px-3 text-sm font-black text-white shadow-sm shadow-teal-900/10 transition hover:bg-teal-800 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
+            className="medicore-gradient flex h-10 w-full items-center justify-between rounded-md px-3 text-sm font-black shadow-sm shadow-teal-900/10 transition hover:brightness-110"
           >
             <span className="inline-flex items-center gap-3">
               <Icon name="department" className="h-5 w-5" />
@@ -570,7 +578,7 @@ const HospitalDashborad = () => {
             <span className="text-lg leading-none">{addMenuOpen ? "-" : "+"}</span>
           </button>
           {addMenuOpen && (
-          <div className="mt-3 space-y-2">
+          <div className="medicore-scroll mt-3 max-h-[260px] space-y-2 overflow-y-auto pr-1">
             {addActionItems.map((item) => (
               <button
                 key={item.id}
@@ -1147,6 +1155,12 @@ const HospitalDashborad = () => {
       {activeForm === "lab" && (
         <Modal title="Add lab" subtitle="Create a lab account and send credentials by email." onClose={closeForm}>
           <AddLab onCreated={afterCreate} />
+        </Modal>
+      )}
+
+      {activeForm === "medicalStore" && (
+        <Modal title="Add medical" subtitle="Create a medical store account and send credentials by email." onClose={closeForm}>
+          <AddMedicalStore onCreated={afterCreate} />
         </Modal>
       )}
 

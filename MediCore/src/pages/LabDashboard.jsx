@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import axiosInstance from "../api";
 import AddTest from "../components/AddTest";
 import StatReportsSection from "../components/StatReportsSection";
-import { UseAuth } from "../custom_hook/useAuth";
+import { UseAuth } from "../custom_hook/UseAuth";
 
 const paths = {
   lab: "M9 3h6M10 3v5l-5 9a3 3 0 002.6 4.5h8.8A3 3 0 0019 17l-5-9V3M8 14h8",

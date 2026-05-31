@@ -18,13 +18,26 @@ export const getStoredToken = () => {
   return localStorage.getItem("token") || "";
 };
 
-export const getDashboardPath = (user) => {
-  if (user?.role === "superAdmin") return "/super-admin/dashboard";
-  if (user?.role === "hospital") return "/hospital/dashboard";
-  if (user?.role === "doctor") return "/doctor/dashboard";
-  if (user?.role === "lab") return "/lab/dashboard";
+export const getUserRole = (user) => {
+  const role = String(user?.role || "").trim();
 
-  if (user?.role === "admin") {
+  if (role.toLowerCase() === "medical" || user?.medicalStoreId || user?.medicalId) {
+    return "medical";
+  }
+
+  return role;
+};
+
+export const getDashboardPath = (user) => {
+  const role = getUserRole(user);
+
+  if (role === "superAdmin") return "/super-admin/dashboard";
+  if (role === "hospital") return "/hospital/dashboard";
+  if (role === "doctor") return "/doctor/dashboard";
+  if (role === "lab") return "/lab/dashboard";
+  if (role === "medical") return "/medical/dashboard";
+
+  if (role === "admin") {
     return "/hospital/dashboard";
   }
 
@@ -32,10 +45,12 @@ export const getDashboardPath = (user) => {
 };
 
 export const getAuthInfo = () => {
-  const user = parseStoredUser();
+  const storedUser = parseStoredUser();
+  const role = getUserRole(storedUser);
+  const user = storedUser ? { ...storedUser, role } : null;
   const token = getStoredToken();
   const dashboardPath = getDashboardPath(user);
-  const isAuthenticated = Boolean(token && user?.role);
+  const isAuthenticated = Boolean(token && role);
 
   return {
     user,
