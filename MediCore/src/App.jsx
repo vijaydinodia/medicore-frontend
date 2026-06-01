@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import Header from "./components/Header";
+import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
 import SignUp from "./components/SignUp";
@@ -19,6 +20,7 @@ import Department from "./pages/Department";
 import Doctors from "./pages/Doctors";
 import MedicalDashboard from "./pages/MedicalDashboard";
 import MedicalStore from "./pages/MedicalStore";
+import { ContactUs, PrivacyPolicy, RefundPolicy, TermsConditions } from "./pages/StaticInfoPages";
 import { getAuthInfo } from "./custom_hook/useAuth";
 
 const PageLoader = () => (
@@ -72,6 +74,10 @@ const App = () => {
           <Route path="/forget" element={withPublic(<ForgetPassword />)} />
           <Route path="/resetpassword" element={withPublic(<ResetPassword />)} />
           <Route path="/verifyotp" element={withPublic(<VerifyOtp />)} />
+          <Route path="/contact-us" element={<ContactUs />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-and-conditions" element={<TermsConditions />} />
+          <Route path="/refund-policy" element={<RefundPolicy />} />
 
           <Route path="/add-hospital" element={<AddHospital />} />
 
@@ -89,6 +95,7 @@ const App = () => {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
+      <Footer />
     </BrowserRouter>
   );
 };
