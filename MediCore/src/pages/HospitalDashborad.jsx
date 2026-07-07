@@ -50,6 +50,7 @@ const icons = {
   today: TodayRoundedIcon,
   reset: RestartAltRoundedIcon,
   medical: MedicalServicesRoundedIcon,
+  receptionist: PersonAddAltRoundedIcon,
 };
 
 const Icon = ({ name, className = "h-5 w-5" }) => (
@@ -169,6 +170,7 @@ const formatSelectedDate = (dateValue) =>
 const reportTabs = [
   { id: "overview", label: "Overview" },
   { id: "labs-tests", label: "Labs & Tests" },
+  { id: "receptionists", label: "Receptionists" },
   { id: "today-patients", label: "Today Patients" },
   { id: "doctor-attendance", label: "Doctor Attendance" },
   { id: "reports", label: "Reports" },
@@ -188,7 +190,9 @@ const HospitalDashborad = () => {
   const [labs, setLabs] = useState([]);
   const [medicalStores, setMedicalStores] = useState([]);
   const [tests, setTests] = useState([]);
+  const [receptionists, setReceptionists] = useState([]);
   const [editingTest, setEditingTest] = useState(null);
+  const [editingReceptionist, setEditingReceptionist] = useState(null);
   const [actionId, setActionId] = useState("");
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [patientStats, setPatientStats] = useState({
@@ -220,6 +224,7 @@ const HospitalDashborad = () => {
   const filteredLabs = labs.filter((item) => getRecordId(item.hospitalId) === hospitalId);
   const filteredMedicalStores = medicalStores.filter((item) => getRecordId(item.hospitalId) === hospitalId);
   const filteredTests = tests.filter((item) => getRecordId(item.hospitalId) === hospitalId);
+  const filteredReceptionists = receptionists.filter((item) => getRecordId(item.hospitalId) === hospitalId);
 
   const searchRecords = (items, keys) => {
     const query = searchTerm.trim().toLowerCase();
@@ -236,6 +241,7 @@ const HospitalDashborad = () => {
   const visibleLabs = searchRecords(filteredLabs, ["labName", "labCode", "email", "phone", "inChargeName", "status"]);
   const visibleMedicalStores = searchRecords(filteredMedicalStores, ["medicalName", "medicalCode", "email", "phone", "inChargeName", "status"]);
   const visibleTests = searchRecords(filteredTests, ["testName", "testCode", "category", "sampleType", "status"]);
+  const visibleReceptionists = searchRecords(filteredReceptionists, ["receptionistName", "receptionistCode", "email", "phone", "status"]);
 
   let statusTone = "warning";
   if (hospital.status === "approved") statusTone = "success";
@@ -256,6 +262,7 @@ const HospitalDashborad = () => {
       const labRes = await axiosInstance.get("/lab/getAllLabs");
       const medicalStoreRes = await axiosInstance.get("/medical/getAllMedicalStores");
       const testRes = await axiosInstance.get("/test/getAllTests?includeDeleted=true");
+      const receptionistRes = await axiosInstance.get("/receptionist/getAllReceptionists");
       const patientStatsRes = await axiosInstance.get(`/appointment/hospitalStats?date=${encodeURIComponent(statsDate || getToday())}`);
 
       setDepartments(departmentRes.data.data || []);
@@ -264,6 +271,7 @@ const HospitalDashborad = () => {
       setLabs(labRes.data.data || []);
       setMedicalStores(medicalStoreRes.data.data || []);
       setTests(testRes.data.data || []);
+      setReceptionists(receptionistRes.data.data || []);
       setPatientStats(patientStatsRes.data.data || {});
     } catch (error) {
       setMessage(error.response?.data?.message || "Unable to load hospital dashboard data.");
@@ -279,6 +287,7 @@ const HospitalDashborad = () => {
   const closeForm = () => {
     setActiveForm("");
     setEditingTest(null);
+    setEditingReceptionist(null);
   };
   const afterCreate = () => {
     loadDashboard();
@@ -324,6 +333,44 @@ const HospitalDashborad = () => {
     await loadDashboard();
   };
 
+  const openEditReceptionist = (receptionist) => {
+    setEditingReceptionist(receptionist);
+    setActiveForm("editReceptionist");
+  };
+
+  const afterUpdateReceptionist = async () => {
+    setEditingReceptionist(null);
+    setActiveForm("");
+    await loadDashboard();
+  };
+
+  const runReceptionistAction = async (receptionist, action) => {
+    const confirmMessage = {
+      softDelete: "Move this receptionist to deleted list?",
+      hardDelete: "Permanently delete this receptionist?",
+    };
+
+    if (!window.confirm(confirmMessage[action])) return;
+
+    const urls = {
+      softDelete: `/receptionist/softDeleteReceptionist/${receptionist._id}`,
+      hardDelete: `/receptionist/hardDeleteReceptionist/${receptionist._id}`,
+    };
+
+    try {
+      setActionId(receptionist._id);
+      setMessage("");
+      const method = action === "hardDelete" ? "delete" : "patch";
+      const res = await axiosInstance[method](urls[action]);
+      setMessage(res.data.message || "Receptionist action completed.");
+      await loadDashboard();
+    } catch (error) {
+      setMessage(error.response?.data?.message || "Unable to update receptionist.");
+    } finally {
+      setActionId("");
+    }
+  };
+
   const canManageHospitalRecords = hospital.isActive && hospital.status === "approved";
   const canAddNestedRecords = canManageHospitalRecords && filteredDepartments.length > 0;
   const canAddTest = canManageHospitalRecords && filteredLabs.length > 0;
@@ -332,6 +379,7 @@ const HospitalDashborad = () => {
   const workspaceNavItems = [
     { id: "overview", label: "Overview", icon: "hospital" },
     { id: "labs-tests", label: "Labs & Tests", icon: "lab" },
+    { id: "receptionists", label: "Receptionists", icon: "receptionist" },
     { id: "today-patients", label: "Today Patients", icon: "activity" },
     { id: "doctor-attendance", label: "Doctor Attendance", icon: "doctor" },
     { id: "reports", label: "Reports", icon: "report" },
@@ -341,7 +389,7 @@ const HospitalDashborad = () => {
     navigate(`/hospital/dashboard?tab=${tabId}`);
   };
   const isPatientTab = activeReportTab === "today-patients" || activeReportTab === "doctor-attendance";
-  const isSetupTab = activeReportTab === "overview" || activeReportTab === "labs-tests";
+  const isSetupTab = activeReportTab === "overview" || activeReportTab === "labs-tests" || activeReportTab === "receptionists";
   const isReportsTab = activeReportTab === "reports";
   const hospitalPhoto = getProfileImage(currentUser);
   const currentDate = getToday();
@@ -414,6 +462,10 @@ const HospitalDashborad = () => {
   const patientAppointmentPagination = UsePagination(visiblePatientAppointments, {
     pageSize: 8,
     resetKeys: [patientSearchTerm, patientSortKey, patientSortDirection, statsDate, patientStatusFilter, activeForm],
+  });
+  const receptionistPagination = UsePagination(visibleReceptionists, {
+    pageSize: 6,
+    resetKeys: [searchTerm, activeForm],
   });
   const changePatientSort = (key) => {
     if (patientSortKey === key) {
@@ -624,7 +676,7 @@ const HospitalDashborad = () => {
 
         <div className="mt-auto rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Live counts</p>
-          <div className="mt-4 grid grid-cols-4 gap-2 text-center">
+          <div className="mt-4 grid grid-cols-5 gap-1 text-center">
             <div className="rounded-md bg-white p-2 dark:bg-slate-950">
               <p className="text-lg font-black">{filteredDepartments.length}</p>
               <p className="text-xs text-slate-500">Dept</p>
@@ -635,11 +687,15 @@ const HospitalDashborad = () => {
             </div>
             <div className="rounded-md bg-white p-2 dark:bg-slate-950">
               <p className="text-lg font-black">{filteredDoctors.length}</p>
-              <p className="text-xs text-slate-500">Doctors</p>
+              <p className="text-xs text-slate-500">Docs</p>
             </div>
             <div className="rounded-md bg-white p-2 dark:bg-slate-950">
               <p className="text-lg font-black">{filteredLabs.length}</p>
               <p className="text-xs text-slate-500">Labs</p>
+            </div>
+            <div className="rounded-md bg-white p-2 dark:bg-slate-950">
+              <p className="text-lg font-black">{filteredReceptionists.length}</p>
+              <p className="text-xs text-slate-500">Recep</p>
             </div>
           </div>
         </div>
@@ -678,7 +734,7 @@ const HospitalDashborad = () => {
                 <SearchInput
                   value={isSetupTab ? searchTerm : patientSearchTerm}
                   onChange={isSetupTab ? setSearchTerm : setPatientSearchTerm}
-                  placeholder={isReportsTab ? "Search reports, patients, doctors, labs" : isSetupTab ? "Search departments, doctors, labs, tests" : "Search patients or doctors"}
+                  placeholder={isReportsTab ? "Search reports, patients, doctors, labs" : isSetupTab ? "Search departments, doctors, labs, tests, receptionists" : "Search patients or doctors"}
                   className="w-full"
                 />
                 {isPatientTab && (
@@ -1035,6 +1091,87 @@ const HospitalDashborad = () => {
           </>
         )}
 
+        {activeReportTab === "receptionists" && (
+          <>
+            <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <StatCard label="Total Receptionists" value={visibleReceptionists.length} icon="receptionist" onClick={() => setActiveForm("receptionist")} />
+              <StatCard label="Active Receptionists" value={visibleReceptionists.filter((r) => r.status === "active").length} icon="activity" onClick={() => openReportTab("receptionists")} />
+              <StatCard label="Inactive Receptionists" value={visibleReceptionists.filter((r) => r.status !== "active").length} icon="archive" onClick={() => openReportTab("receptionists")} />
+            </section>
+
+            <section className="mt-6">
+              <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-950 dark:text-white">Receptionists</h2>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Manage hospital receptionist accounts, credentials, and profile details.</p>
+                  </div>
+                  <ActionButton icon="receptionist" onClick={() => setActiveForm("receptionist")}>
+                    Add receptionist
+                  </ActionButton>
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  {receptionistPagination.paginatedItems.map((receptionist) => (
+                    <div
+                      key={receptionist._id}
+                      className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900"
+                    >
+                      <div className="grid gap-4 md:grid-cols-[auto_1fr_auto] md:items-center">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md bg-teal-700 text-sm font-black text-white dark:bg-teal-500 dark:text-slate-950">
+                          {receptionist.profileImage ? (
+                            <img src={receptionist.profileImage} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            (receptionist.receptionistName || "R").slice(0, 2).toUpperCase()
+                          )}
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-bold text-slate-950 dark:text-white">{receptionist.receptionistName}</p>
+                            <span className="text-xs font-semibold text-slate-400">({receptionist.receptionistCode})</span>
+                          </div>
+                          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                            {receptionist.email} | {receptionist.phone}
+                          </p>
+                          {receptionist.qualification && (
+                            <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
+                              Edu: {receptionist.qualification} | Exp: {receptionist.experience || 0} years
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Pill tone={receptionist.status === "active" ? "success" : "warning"}>
+                            {receptionist.status}
+                          </Pill>
+                          <IconButton icon="edit" label="Edit receptionist" onClick={() => openEditReceptionist(receptionist)} />
+                          <IconButton icon="trash" label="Delete receptionist" tone="danger" disabled={actionId === receptionist._id} onClick={() => runReceptionistAction(receptionist, "hardDelete")} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {!loading && visibleReceptionists.length === 0 && (
+                    <div className="rounded-lg border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                      {searchTerm ? "No receptionists match your search." : "No receptionists added yet."}
+                    </div>
+                  )}
+
+                  <Pagination
+                    currentPage={receptionistPagination.currentPage}
+                    endItem={receptionistPagination.endItem}
+                    onPageChange={receptionistPagination.setCurrentPage}
+                    startItem={receptionistPagination.startItem}
+                    totalItems={receptionistPagination.totalItems}
+                    totalPages={receptionistPagination.totalPages}
+                  />
+                </div>
+              </div>
+            </section>
+          </>
+        )}
+
         {isReportsTab && (
           <StatReportsSection
             title="Hospital Reports"
@@ -1231,6 +1368,12 @@ const HospitalDashborad = () => {
       {activeForm === "editTest" && editingTest && (
         <Modal title="Update test" subtitle="Change test details, fees, lab, or status." onClose={closeForm}>
           <AddTest labs={filteredLabs} editTest={editingTest} onUpdated={afterUpdateTest} />
+        </Modal>
+      )}
+
+      {activeForm === "editReceptionist" && editingReceptionist && (
+        <Modal title="Update receptionist" subtitle="Change receptionist details, contact, or profile." onClose={closeForm}>
+          <AddReceptionist hospitalId={hospitalId} editReceptionist={editingReceptionist} onUpdated={afterUpdateReceptionist} />
         </Modal>
       )}
     </main>

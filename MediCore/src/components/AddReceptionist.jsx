@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axiosInstance from "../api";
 
 const inputClass =
   "h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-teal-400 dark:focus:ring-teal-950";
 
-const AddReceptionist = ({ hospitalId, onCreated }) => {
+const AddReceptionist = ({ hospitalId, editReceptionist = null, onCreated, onUpdated }) => {
   const [form, setForm] = useState({
     receptionistName: "",
     receptionistCode: "",
@@ -21,6 +21,38 @@ const AddReceptionist = ({ hospitalId, onCreated }) => {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [profileImageFile, setProfileImageFile] = useState(null);
+  const isEdit = Boolean(editReceptionist?._id);
+
+  useEffect(() => {
+    if (!editReceptionist) {
+      setForm({
+        receptionistName: "",
+        receptionistCode: "",
+        email: "",
+        phone: "",
+        alternatePhone: "",
+        gender: "",
+        dateOfBirth: "",
+        qualification: "",
+        experience: "",
+        address: "",
+      });
+      return;
+    }
+
+    setForm({
+      receptionistName: editReceptionist.receptionistName || "",
+      receptionistCode: editReceptionist.receptionistCode || "",
+      email: editReceptionist.email || "",
+      phone: editReceptionist.phone || "",
+      alternatePhone: editReceptionist.alternatePhone || "",
+      gender: editReceptionist.gender || "",
+      dateOfBirth: editReceptionist.dateOfBirth ? editReceptionist.dateOfBirth.slice(0, 10) : "",
+      qualification: editReceptionist.qualification || "",
+      experience: editReceptionist.experience || "",
+      address: editReceptionist.address || "",
+    });
+  }, [editReceptionist]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -57,29 +89,40 @@ const AddReceptionist = ({ hospitalId, onCreated }) => {
         payload.append("profileImage", profileImageFile);
       }
 
-      const res = await axiosInstance.post("/receptionist/createReceptionist", payload, {
+      const url = isEdit
+        ? `/receptionist/updateReceptionist/${editReceptionist._id}`
+        : "/receptionist/createReceptionist";
+
+      const res = await axiosInstance({
+        method: isEdit ? "patch" : "post",
+        url,
+        data: payload,
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
 
-      setMessage(res.data.message || "Receptionist account created successfully.");
-      setForm({
-        receptionistName: "",
-        receptionistCode: "",
-        email: "",
-        phone: "",
-        alternatePhone: "",
-        gender: "",
-        dateOfBirth: "",
-        qualification: "",
-        experience: "",
-        address: "",
-      });
-      setProfileImageFile(null);
-      onCreated?.(res.data.data);
+      setMessage(res.data.message || (isEdit ? "Receptionist updated successfully." : "Receptionist account created successfully."));
+      if (!isEdit) {
+        setForm({
+          receptionistName: "",
+          receptionistCode: "",
+          email: "",
+          phone: "",
+          alternatePhone: "",
+          gender: "",
+          dateOfBirth: "",
+          qualification: "",
+          experience: "",
+          address: "",
+        });
+        setProfileImageFile(null);
+        onCreated?.(res.data.data);
+      } else {
+        onUpdated?.(res.data.data);
+      }
     } catch (err) {
-      setError(err.response?.data?.message || "Unable to create receptionist.");
+      setError(err.response?.data?.message || "Unable to save receptionist.");
     } finally {
       setLoading(false);
     }
@@ -145,7 +188,7 @@ const AddReceptionist = ({ hospitalId, onCreated }) => {
       </div>
 
       <button type="submit" disabled={loading} className="h-11 w-full rounded-md bg-teal-700 px-4 text-sm font-bold text-white transition hover:bg-teal-800 disabled:bg-teal-400 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400">
-        {loading ? "Saving..." : "Save receptionist"}
+        {loading ? "Saving..." : isEdit ? "Update receptionist" : "Save receptionist"}
       </button>
     </form>
   );
