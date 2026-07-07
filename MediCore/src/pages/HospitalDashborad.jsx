@@ -22,6 +22,7 @@ import AddDepartment from "../components/AddDepartment";
 import AddDoctor from "../components/AddDoctor";
 import AddLab from "../components/AddLab";
 import AddMedicalStore from "../components/AddMedicalStore";
+import AddReceptionist from "../components/AddReceptionist";
 import AddSubDepartment from "../components/AddSubDepartment";
 import AddTest from "../components/AddTest";
 import Pagination from "../components/Pagination";
@@ -350,6 +351,7 @@ const HospitalDashborad = () => {
     { id: "department", label: "Add department", icon: "department", disabled: !canManageHospitalRecords, title: !canManageHospitalRecords ? "Hospital is inactive" : "Add department" },
     { id: "subDepartment", label: "Add subdepartment", icon: "subDepartment", disabled: !canAddNestedRecords, title: !canManageHospitalRecords ? "Hospital is inactive" : !canAddNestedRecords ? "Add a department first" : "Add subdepartment" },
     { id: "doctor", label: "Add doctor", icon: "doctor", disabled: !canAddNestedRecords, title: !canManageHospitalRecords ? "Hospital is inactive" : !canAddNestedRecords ? "Add a department first" : "Add doctor" },
+    { id: "receptionist", label: "Add receptionist", icon: "doctor", disabled: !canManageHospitalRecords, title: !canManageHospitalRecords ? "Hospital is inactive" : "Add receptionist" },
     { id: "lab", label: "Add lab", icon: "lab", disabled: !canManageHospitalRecords, title: !canManageHospitalRecords ? "Hospital is inactive" : "Add lab" },
     { id: "medicalStore", label: "Add medical", icon: "medical", disabled: !canManageHospitalRecords, title: !canManageHospitalRecords ? "Hospital is inactive" : "Add medical" },
     { id: "test", label: "Add test", icon: "test", disabled: !canAddTest, title: !canManageHospitalRecords ? "Hospital is inactive" : !canAddTest ? "Add a lab first" : "Add test" },
@@ -1199,6 +1201,12 @@ const HospitalDashborad = () => {
       {activeForm === "doctor" && (
         <Modal title="Add doctor" subtitle="Create a doctor profile and send account credentials by email." onClose={closeForm}>
           <AddDoctor hospitalId={hospitalId} departments={filteredDepartments} subDepartments={filteredSubDepartments} onCreated={afterCreate} />
+        </Modal>
+      )}
+
+      {activeForm === "receptionist" && (
+        <Modal title="Add receptionist" subtitle="Create a receptionist profile and send account credentials by email." onClose={closeForm}>
+          <AddReceptionist hospitalId={hospitalId} onCreated={afterCreate} />
         </Modal>
       )}
 

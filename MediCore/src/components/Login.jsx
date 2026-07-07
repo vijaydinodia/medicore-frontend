@@ -12,6 +12,7 @@ const dashboardByRole = (user) => {
   if (role === "doctor") return "/doctor/dashboard";
   if (role === "lab") return "/lab/dashboard";
   if (role === "medical") return "/medical/dashboard";
+  if (role === "receptionist") return "/receptionist/dashboard";
   if (role === "admin") return "/hospital/dashboard";
   return "/user/dashboard";
 };

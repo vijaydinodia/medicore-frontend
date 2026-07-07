@@ -19,6 +19,7 @@ import LabDashboard from "./pages/LabDashboard";
 import Department from "./pages/Department";
 import Doctors from "./pages/Doctors";
 import MedicalDashboard from "./pages/MedicalDashboard";
+import ReceptionistDashboard from "./pages/ReceptionistDashboard";
 import MedicalStore from "./pages/MedicalStore";
 import { ContactUs, PrivacyPolicy, RefundPolicy, TermsConditions } from "./pages/StaticInfoPages";
 import { getAuthInfo } from "./custom_hook/useAuth";
@@ -86,6 +87,7 @@ const App = () => {
           <Route path="/hospital/details/:id" element={<HospitalDetailsPage />} />
           <Route path="/doctor/dashboard" element={withProtected(<DoctorDashboard />, ["doctor"])} />
           <Route path="/lab/dashboard" element={withProtected(<LabDashboard />, ["lab"])} />
+          <Route path="/receptionist/dashboard" element={withProtected(<ReceptionistDashboard />, ["receptionist"])} />
           <Route path="/user/dashboard" element={<PatientHomeRoute />} />
 
           <Route path="/hospital/department" element={withProtected(<Department />, ["hospital", "admin"])} />

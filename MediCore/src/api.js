@@ -1,24 +1,22 @@
 import axios from "axios";
 
+export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 const axiosInstance = axios.create({
-  baseURL: "https://medicore-backend-3ovc.onrender.com",
-  withCredentials: true,
+  baseURL: API_URL,
 });
 
-axiosInstance.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-
-  if (typeof FormData !== "undefined" && config.data instanceof FormData) {
-    config.headers.delete?.("Content-Type");
-    delete config.headers["Content-Type"];
-    delete config.headers["content-type"];
-  }
-
-  return config;
-});
+);
 
 export default axiosInstance;

@@ -93,6 +93,10 @@ const Header = () => {
       ? [
           { name: "Dashboard", path: dashboardPath },
         ]
+      : role === "receptionist"
+      ? [
+          { name: "Dashboard", path: dashboardPath },
+        ]
       : role === "medical"
       ? [
           { name: "Dashboard", path: dashboardPath },

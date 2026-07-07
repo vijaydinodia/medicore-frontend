@@ -25,6 +25,10 @@ export const getUserRole = (user) => {
     return "medical";
   }
 
+  if (role.toLowerCase() === "receptionist" || user?.receptionistId) {
+    return "receptionist";
+  }
+
   return role;
 };
 
@@ -36,6 +40,7 @@ export const getDashboardPath = (user) => {
   if (role === "doctor") return "/doctor/dashboard";
   if (role === "lab") return "/lab/dashboard";
   if (role === "medical") return "/medical/dashboard";
+  if (role === "receptionist") return "/receptionist/dashboard";
 
   if (role === "admin") {
     return "/hospital/dashboard";
