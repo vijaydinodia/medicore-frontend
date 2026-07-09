@@ -30,6 +30,7 @@ import SearchInput from "../components/SearchInput";
 import StatReportsSection from "../components/StatReportsSection";
 import { UsePagination } from "../custom_hook/UsePagination";
 import { UseAuth } from "../custom_hook/useAuth";
+import { AreaChart, DonutChart, BarChart } from "../components/SvgCharts";
 
 const icons = {
   department: MenuRoundedIcon,
@@ -203,6 +204,7 @@ const HospitalDashborad = () => {
     doctorStats: [],
     appointments: [],
   });
+  const [overviewStats, setOverviewStats] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [patientSearchTerm, setPatientSearchTerm] = useState("");
   const [patientStatusFilter, setPatientStatusFilter] = useState("all");
@@ -264,6 +266,7 @@ const HospitalDashborad = () => {
       const testRes = await axiosInstance.get("/test/getAllTests?includeDeleted=true");
       const receptionistRes = await axiosInstance.get("/receptionist/getAllReceptionists");
       const patientStatsRes = await axiosInstance.get(`/appointment/hospitalStats?date=${encodeURIComponent(statsDate || getToday())}`);
+      const overviewStatsRes = await axiosInstance.get("/appointment/hospitalOverviewStats");
 
       setDepartments(departmentRes.data.data || []);
       setSubDepartments(subDepartmentRes.data.data || []);
@@ -273,6 +276,7 @@ const HospitalDashborad = () => {
       setTests(testRes.data.data || []);
       setReceptionists(receptionistRes.data.data || []);
       setPatientStats(patientStatsRes.data.data || {});
+      setOverviewStats(overviewStatsRes.data.data || null);
     } catch (error) {
       setMessage(error.response?.data?.message || "Unable to load hospital dashboard data.");
     } finally {
@@ -813,7 +817,58 @@ const HospitalDashborad = () => {
 
         {activeReportTab === "overview" && (
           <>
-            <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {overviewStats && (
+              <div className="mt-6 space-y-6">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                    <p className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Hospital Revenue</p>
+                    <p className="mt-2 text-3xl font-black text-teal-700 dark:text-teal-400">₹{(overviewStats.totalRevenue || 0).toLocaleString()}</p>
+                    <p className="mt-1 text-xs text-slate-400">Combined consultation & lab collections</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                    <p className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Doctor Consultation Fees</p>
+                    <p className="mt-2 text-3xl font-black text-slate-900 dark:text-white">₹{(overviewStats.consultationRevenue || 0).toLocaleString()}</p>
+                    <p className="mt-1 text-xs text-slate-400">From verified doctor check-ins</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                    <p className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Lab Diagnostic Fees</p>
+                    <p className="mt-2 text-3xl font-black text-slate-900 dark:text-white">₹{(overviewStats.labRevenue || 0).toLocaleString()}</p>
+                    <p className="mt-1 text-xs text-slate-400">From collected patient test charges</p>
+                  </div>
+                </div>
+
+                <div className="grid gap-6 lg:grid-cols-3">
+                  <div className="lg:col-span-2">
+                    <AreaChart
+                      title="30-Day Revenue Trend (₹)"
+                      data={overviewStats.dailyTrend || []}
+                    />
+                  </div>
+
+                  <div className="space-y-6">
+                    <DonutChart
+                      title="Revenue by Payment Method"
+                      data={[
+                        { name: "Cash", value: overviewStats.paymentMethods?.cash || 0, color: "#0F766E" },
+                        { name: "UPI", value: overviewStats.paymentMethods?.upi || 0, color: "#0D9488" },
+                        { name: "Cards", value: overviewStats.paymentMethods?.card || 0, color: "#3B82F6" },
+                      ]}
+                    />
+
+                    <BarChart
+                      title="Receptionist Revenue Collections"
+                      data={(overviewStats.receptionistBreakdown || []).map((rx, idx) => ({
+                        name: rx.name || "Receptionist",
+                        value: rx.amount || 0,
+                        color: idx % 3 === 0 ? "#0F766E" : idx % 3 === 1 ? "#0D9488" : "#3B82F6",
+                      }))}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <StatCard label="Departments" value={visibleDepartments.length} icon="department" onClick={() => openReportTab("overview")} />
               <StatCard label="Subdepartments" value={visibleSubDepartments.length} icon="subDepartment" onClick={() => openReportTab("overview")} />
               <StatCard label="Doctors" value={visibleDoctors.length} icon="doctor" onClick={() => openReportTab("overview")} />

@@ -3,6 +3,7 @@ import axiosInstance from "../api";
 import Pagination from "../components/Pagination";
 import { UsePagination } from "../custom_hook/UsePagination";
 import { UseAuth } from "../custom_hook/useAuth";
+import { DonutChart } from "../components/SvgCharts";
 
 const paths = {
   lab: "M9 3h6M10 3v5l-5 9a3 3 0 002.6 4.5h8.8A3 3 0 0019 17l-5-9V3M8 14h8",
@@ -110,6 +111,18 @@ const ReceptionistDashboard = () => {
   const [tokenType, setTokenType] = useState(""); // "appointment" or "test"
   const [selectedTestDetails, setSelectedTestDetails] = useState(null);
 
+  const [payingItem, setPayingItem] = useState(null);
+  const [overviewStats, setOverviewStats] = useState(null);
+
+  const loadOverviewStats = async () => {
+    try {
+      const statsRes = await axiosInstance.get("/appointment/hospitalOverviewStats");
+      setOverviewStats(statsRes.data.data);
+    } catch (err) {
+      console.error("Failed to load overview stats:", err);
+    }
+  };
+
   const loadDashboard = async () => {
     try {
       setLoading(true);
@@ -121,6 +134,8 @@ const ReceptionistDashboard = () => {
 
       setAppointments(appointmentRes.data.data || []);
       setPrescriptions(prescriptionRes.data.data || []);
+
+      await loadOverviewStats();
     } catch (err) {
       setError(err.response?.data?.message || "Unable to load receptionist data.");
     } finally {
@@ -132,10 +147,10 @@ const ReceptionistDashboard = () => {
     loadDashboard();
   }, []);
 
-  const handleVerifyAppointment = async (appointmentId, paymentStatus) => {
+  const handleVerifyAppointment = async (appointmentId, paymentStatus, paymentMethod) => {
     try {
       setLoading(true);
-      const res = await axiosInstance.patch(`/appointment/verifyAppointment/${appointmentId}`, { paymentStatus });
+      const res = await axiosInstance.patch(`/appointment/verifyAppointment/${appointmentId}`, { paymentStatus, paymentMethod });
       setMessage(res.data.message || "Appointment status updated.");
       await loadDashboard();
     } catch (err) {
@@ -145,10 +160,10 @@ const ReceptionistDashboard = () => {
     }
   };
 
-  const handleCollectTestFee = async (medicineId, testId) => {
+  const handleCollectTestFee = async (medicineId, testId, paymentMethod) => {
     try {
       setLoading(true);
-      const res = await axiosInstance.post("/appointment/collectTestFee", { medicineId, testId });
+      const res = await axiosInstance.post("/appointment/collectTestFee", { medicineId, testId, paymentMethod });
       setMessage(res.data.message || "Test fee marked as collected.");
       await loadDashboard();
     } catch (err) {
@@ -283,6 +298,80 @@ const ReceptionistDashboard = () => {
               <InfoCard icon="cash" label="Collected Lab Fee" value={`₹ ${totalLabFees}`} />
             </div>
 
+            {overviewStats && (
+              <div className="grid gap-6 md:grid-cols-2">
+                <DonutChart
+                  title="Revenue by Payment Method"
+                  data={[
+                    { name: "Cash", value: overviewStats.paymentMethods?.cash || 0, color: "#0F766E" },
+                    { name: "UPI", value: overviewStats.paymentMethods?.upi || 0, color: "#0D9488" },
+                    { name: "Cards", value: overviewStats.paymentMethods?.card || 0, color: "#3B82F6" },
+                  ]}
+                />
+                <DonutChart
+                  title="Revenue by Category Source"
+                  data={[
+                    { name: "Consultation Fee", value: overviewStats.consultationRevenue || 0, color: "#14B8A6" },
+                    { name: "Lab Test Fee", value: overviewStats.labRevenue || 0, color: "#6366F1" },
+                  ]}
+                />
+              </div>
+            )}
+
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+              <h2 className="text-xl font-black text-slate-950 dark:text-white mb-4">Recent Bookings & Appointments</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-sm text-slate-500 dark:text-slate-400">
+                  <thead className="border-b border-slate-200 bg-slate-50 text-xs font-black uppercase tracking-wider text-slate-700 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-300">
+                    <tr>
+                      <th className="px-4 py-3">Patient</th>
+                      <th className="px-4 py-3">Doctor</th>
+                      <th className="px-4 py-3">Slot</th>
+                      <th className="px-4 py-3">Payment Method</th>
+                      <th className="px-4 py-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                    {appointments.slice(0, 5).map((app) => {
+                      return (
+                        <tr key={app._id} className="hover:bg-slate-50 dark:hover:bg-slate-900/30">
+                          <td className="px-4 py-3">
+                            <p className="font-bold text-slate-900 dark:text-white">{app.userId?.name || "Patient"}</p>
+                            <p className="text-xs text-slate-400">{app.userId?.phone || "-"}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="font-semibold text-slate-800 dark:text-slate-200">Dr. {app.doctorId?.doctorName}</p>
+                            <p className="text-xs text-slate-400">{app.doctorId?.specialization}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p>{formatDate(app.date)}</p>
+                            <p className="text-xs text-slate-400">{app.timeSlot}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Pill tone={app.paymentStatus === "done" ? "success" : "warning"}>
+                              {app.paymentStatus === "done" ? `Paid (${(app.paymentMethod || "cash").toUpperCase()})` : "Pending"}
+                            </Pill>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Pill tone={app.status === "confirmed" ? "success" : app.status === "completed" ? "neutral" : "warning"}>
+                              {app.status}
+                            </Pill>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {appointments.length === 0 && (
+                      <tr>
+                        <td colSpan="5" className="px-4 py-8 text-center text-slate-400">
+                          No recent appointments found for your hospital.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
             {/* Dashboard instructions panel */}
             <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
               <h2 className="text-xl font-black text-slate-950 dark:text-white">Required Receptionist Actions</h2>
@@ -338,7 +427,13 @@ const ReceptionistDashboard = () => {
                       {appointment.paymentStatus !== "done" && (
                         <button
                           type="button"
-                          onClick={() => handleVerifyAppointment(appointment._id, "done")}
+                          onClick={() => setPayingItem({
+                            type: "appointment",
+                            id: appointment._id,
+                            amount: appointment.doctorId?.consultationFee || 0,
+                            name: `Consultation Fee - Dr. ${appointment.doctorId?.doctorName || "Doctor"}`,
+                            patient: appointment.userId?.name || "Patient"
+                          })}
                           disabled={loading}
                           className="rounded bg-teal-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-teal-700 disabled:opacity-50 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
                         >
@@ -409,7 +504,14 @@ const ReceptionistDashboard = () => {
                     {test.paymentStatus !== "done" && (
                       <button
                         type="button"
-                        onClick={() => handleCollectTestFee(test.medicineId, test.testId)}
+                        onClick={() => setPayingItem({
+                          type: "test",
+                          id: test.testId,
+                          medicineId: test.medicineId,
+                          amount: test.amount,
+                          name: `Lab Test Fee - ${test.testName}`,
+                          patient: test.patientName
+                        })}
                         disabled={loading}
                         className="rounded bg-teal-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-teal-700 disabled:opacity-50 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400"
                       >
@@ -537,6 +639,83 @@ const ReceptionistDashboard = () => {
               </button>
             </div>
 
+          </div>
+        </Modal>
+      )}
+
+      {payingItem && (
+        <Modal title="Choose Payment Method" onClose={() => setPayingItem(null)}>
+          <div className="p-2 text-center">
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Collecting payment for</p>
+            <h4 className="mt-1 text-lg font-black text-slate-950 dark:text-white">{payingItem.name}</h4>
+            <p className="mt-0.5 text-xs font-semibold text-slate-400">Patient: {payingItem.patient}</p>
+            
+            <div className="my-6">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Amount Due</span>
+              <div className="mt-1 text-3xl font-black text-teal-700 dark:text-teal-400">₹{payingItem.amount}</div>
+            </div>
+
+            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-3">Select Payment Source</p>
+            <div className="grid gap-3 grid-cols-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (payingItem.type === "appointment") {
+                    await handleVerifyAppointment(payingItem.id, "done", "cash");
+                  } else {
+                    await handleCollectTestFee(payingItem.medicineId, payingItem.id, "cash");
+                  }
+                  setPayingItem(null);
+                }}
+                disabled={loading}
+                className="flex flex-col items-center justify-center rounded-lg border border-slate-200 bg-white p-4 transition hover:border-teal-500 hover:bg-teal-50/20 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-teal-500 dark:hover:bg-teal-950/20 cursor-pointer"
+              >
+                <span className="text-2xl">💵</span>
+                <span className="mt-2 text-xs font-bold text-slate-800 dark:text-slate-200">Cash</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  if (payingItem.type === "appointment") {
+                    await handleVerifyAppointment(payingItem.id, "done", "upi");
+                  } else {
+                    await handleCollectTestFee(payingItem.medicineId, payingItem.id, "upi");
+                  }
+                  setPayingItem(null);
+                }}
+                disabled={loading}
+                className="flex flex-col items-center justify-center rounded-lg border border-slate-200 bg-white p-4 transition hover:border-teal-500 hover:bg-teal-50/20 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-teal-500 dark:hover:bg-teal-950/20 cursor-pointer"
+              >
+                <span className="text-2xl">📱</span>
+                <span className="mt-2 text-xs font-bold text-slate-800 dark:text-slate-200">UPI / QR</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  if (payingItem.type === "appointment") {
+                    await handleVerifyAppointment(payingItem.id, "done", "card");
+                  } else {
+                    await handleCollectTestFee(payingItem.medicineId, payingItem.id, "card");
+                  }
+                  setPayingItem(null);
+                }}
+                disabled={loading}
+                className="flex flex-col items-center justify-center rounded-lg border border-slate-200 bg-white p-4 transition hover:border-teal-500 hover:bg-teal-50/20 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-teal-500 dark:hover:bg-teal-950/20 cursor-pointer"
+              >
+                <span className="text-2xl">💳</span>
+                <span className="mt-2 text-xs font-bold text-slate-800 dark:text-slate-200">Card</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setPayingItem(null)}
+              className="mt-6 w-full rounded border border-slate-300 bg-white py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 cursor-pointer"
+            >
+              Cancel
+            </button>
           </div>
         </Modal>
       )}
