@@ -85,10 +85,110 @@ const formatDoctorTiming = (doctor) => {
   return "Timing not available";
 };
 
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
+
 const UserDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, user } = getAuthInfo();
+
+  const handlePayOnline = async (item, type = "appointment", medicineId = null, testId = null) => {
+    try {
+      setLoading(true);
+      setMessage("");
+
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        alert("Failed to load Razorpay SDK. Please check your internet connection.");
+        setLoading(false);
+        return;
+      }
+
+      const payload = {
+        type,
+        appointmentId: type === "appointment" ? item._id : undefined,
+        medicineId,
+        testId,
+      };
+
+      const orderRes = await axiosInstance.post("/appointment/createRazorpayOrder", payload);
+      if (!orderRes.data.success) {
+        alert("Failed to initiate payment. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      const { orderId, amount, currency, keyId } = orderRes.data;
+
+      const options = {
+        key: keyId,
+        amount,
+        currency,
+        name: "MediCore Healthcare",
+        description: type === "appointment" 
+          ? `Consultation payment for Dr. ${item.doctorId?.doctorName || "Doctor"}`
+          : `Diagnostic lab test charge`,
+        order_id: orderId,
+        handler: async (response) => {
+          try {
+            setLoading(true);
+            
+            const verifyPayload = {
+              type,
+              appointmentId: type === "appointment" ? item._id : undefined,
+              medicineId,
+              testId,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            };
+
+            const verifyRes = await axiosInstance.post("/appointment/verifyRazorpayPayment", verifyPayload);
+            
+            if (verifyRes.data.success) {
+              setMessage("Payment completed and booking confirmed successfully!");
+              await loadAppointments();
+              
+              // Reload lab tests catalogue
+              const testResult = await axiosInstance.get("/test/getAllTests");
+              setTests(testResult.data.data || []);
+            } else {
+              alert("Payment verification failed. Please contact support.");
+            }
+          } catch (verifyError) {
+            console.error(verifyError);
+            alert("Error verifying payment signature.");
+          } finally {
+            setLoading(false);
+          }
+        },
+        prefill: {
+          name: user?.name || "",
+          email: user?.email || "",
+          contact: user?.phone || "",
+        },
+        theme: {
+          color: "#0F766E",
+        },
+      };
+
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.open();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Payment initiation failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [activeTab, setActiveTab] = useState("hospital");
   const [searchText, setSearchText] = useState("");
@@ -786,16 +886,30 @@ const UserDashboard = () => {
                       Share
                     </label>
                   </div>
-                  <MedicineHistory medicine={appointment.medicine} reports={appointment.reports} />
+                  <MedicineHistory
+                    medicine={appointment.medicine}
+                    reports={appointment.reports}
+                    onPayTest={(testId) => handlePayOnline(appointment, "test", appointment.medicine?._id, testId)}
+                  />
                 </div>
 
                 {["pending", "confirmed"].includes(appointment.status) && (
-                  <div className="flex justify-end border-t border-slate-200 px-4 py-3 dark:border-slate-800">
+                  <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3 dark:border-slate-800">
+                    {appointment.paymentStatus === "pending" && (
+                      <button
+                        type="button"
+                        onClick={() => handlePayOnline(appointment, "appointment")}
+                        disabled={loading}
+                        className="h-9 rounded-md bg-teal-700 px-4 text-sm font-black text-white transition hover:bg-teal-800 disabled:opacity-60 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400 cursor-pointer"
+                      >
+                        Pay Online
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => cancelAppointment(appointment._id)}
                       disabled={cancelId === appointment._id}
-                      className="h-9 rounded-md bg-rose-600 px-4 text-sm font-black text-white transition hover:bg-rose-700 disabled:opacity-60 dark:bg-rose-500 dark:hover:bg-rose-400"
+                      className="h-9 rounded-md bg-rose-600 px-4 text-sm font-black text-white transition hover:bg-rose-700 disabled:opacity-60 dark:bg-rose-500 dark:hover:bg-rose-400 cursor-pointer"
                     >
                       {cancelId === appointment._id ? "Cancelling..." : "Cancel Booking"}
                     </button>
@@ -959,7 +1073,7 @@ const InfoBox = ({ label, value, icon: Icon }) => {
   );
 };
 
-const MedicineHistory = ({ medicine, reports = [] }) => {
+const MedicineHistory = ({ medicine, reports = [], onPayTest }) => {
   if (!medicine) {
     return (
       <p className="mt-4 text-sm font-semibold text-slate-500 dark:text-slate-400">
@@ -993,16 +1107,35 @@ const MedicineHistory = ({ medicine, reports = [] }) => {
         <div className="mt-4">
           <p className="text-sm font-black text-slate-950 dark:text-white">Tests</p>
           <div className="mt-3 space-y-2">
-            {(medicine.tests || []).map((item, index) => (
-              <div key={index} className="rounded-md border border-slate-200 bg-white p-3 text-sm dark:border-slate-800 dark:bg-slate-900">
-                <p className="font-black text-slate-950 dark:text-white">
-                  {item.testName || item.testId?.testName || "Test"}
-                </p>
-                <p className="mt-1 text-slate-600 dark:text-slate-300">
-                  {item.labId?.labName || "Lab not available"} | {item.status || "pending"}
-                </p>
-              </div>
-            ))}
+            {(medicine.tests || []).map((item, index) => {
+              const testId = item.testId?._id || item.testId || item._id;
+              const isPaid = item.paymentStatus === "done";
+              const amount = item.testId?.amount || 0;
+              return (
+                <div key={index} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-md border border-slate-200 bg-white p-3 text-sm dark:border-slate-800 dark:bg-slate-900">
+                  <div>
+                    <p className="font-black text-slate-950 dark:text-white">
+                      {item.testName || item.testId?.testName || "Test"}
+                    </p>
+                    <p className="mt-1 text-slate-600 dark:text-slate-300">
+                      {item.labId?.labName || "Lab not available"} | {item.status || "pending"}
+                    </p>
+                    <p className="text-xs font-semibold text-teal-600 dark:text-teal-400 mt-0.5">
+                      Fee: ₹{amount} | Payment: {isPaid ? "Paid" : "Pending"}
+                    </p>
+                  </div>
+                  {!isPaid && onPayTest && (
+                    <button
+                      type="button"
+                      onClick={() => onPayTest(testId, amount)}
+                      className="h-8 shrink-0 rounded bg-teal-700 px-3 text-xs font-black text-white hover:bg-teal-800 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400 cursor-pointer"
+                    >
+                      Pay Online
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
